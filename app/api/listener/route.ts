@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { creditRPSend } from '../../../lib/rewards';
+import User from '@/lib/models/User';
 
 export async function POST(request: Request) {
     const { sender } = await request.json();

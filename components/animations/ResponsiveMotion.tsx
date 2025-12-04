@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, MotionProps } from 'framer-motion';
+import { ReactNode } from 'react';
 import { usePerfTier } from '../lib/usePerfTier';
 
 type PerfTier = 'low' | 'mid' | 'high' | 'ultra';
@@ -21,11 +22,16 @@ const presets = {
     confetti: (tier: PerfTier) => tier === 'low' ? 0 : tier === 'mid' ? 30 : tier === 'high' ? 80 : 150,
 };
 
+type ResponsiveMotionProps = Omit<MotionProps, 'children'> & {
+    variant?: keyof typeof presets;
+    children?: ReactNode;
+};
+
 export default function ResponsiveMotion({
     children,
     variant = 'cardEnter',
     ...props
-}: MotionProps & { variant?: keyof typeof presets }) {
+}: ResponsiveMotionProps) {
     const tier = usePerfTier();
 
     // Confetti handling

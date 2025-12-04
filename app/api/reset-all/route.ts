@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
 import Wallet from '@/lib/models/Wallet';
 import Transaction from '@/lib/models/Transaction';
-import Tag from '@/lib/models/Tag';
+import UserTag from '@/lib/models/UserTag';
 
 export async function DELETE() {
     try {
@@ -13,7 +13,7 @@ export async function DELETE() {
         await User.deleteMany({});
         await Wallet.deleteMany({});
         await Transaction.deleteMany({});
-        await Tag.deleteMany({});
+        await UserTag.deleteMany({});
 
         return NextResponse.json({
             success: true,

@@ -7,6 +7,8 @@ import Wallet from '@/lib/models/Wallet';
 import { decryptMnemonic } from '@/lib/crypto';
 import { deriveCantonPartyId, getCantonBalance } from '@/lib/canton';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const session = await getServerSession(authOptions);

@@ -5,6 +5,8 @@ import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
 import Wallet from "@/lib/models/Wallet";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         await dbConnect();

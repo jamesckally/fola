@@ -6,7 +6,9 @@ import Wallet from '@/lib/models/Wallet';
 import { decryptMnemonic } from '@/lib/crypto';
 import connectDB from '@/lib/db';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
 

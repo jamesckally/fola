@@ -8,7 +8,7 @@ import connectDB from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);
 

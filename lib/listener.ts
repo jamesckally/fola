@@ -1,3 +1,4 @@
+/*
 import { publicClient } from './canton';
 import { creditRPSend } from './rewards';
 
@@ -21,3 +22,4 @@ publicClient.watchEvent({
         }
     }
 });
+*/

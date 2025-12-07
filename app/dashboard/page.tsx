@@ -44,6 +44,9 @@ const DashboardContent = () => {
     const [countdownEndDate, setCountdownEndDate] = useState<Date | null>(null);
     const [timeRemaining, setTimeRemaining] = useState("");
 
+    // Success Dialog State
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+
     // Treasury Address for deposits
     const TREASURY_ADDRESS = "331ad0da16421f0d8046d864c745ad72::12203ca3910059e9ef2795c9bacfd2e2316e6f42db57d8965ff2dce0392a37f3e5a4";
 
@@ -174,11 +177,12 @@ const DashboardContent = () => {
 
             if (!res.ok) throw new Error(data.error || 'Verification failed');
 
-            toast.success(`Deposit verified! Credited ${data.newBalance - internalBalance} CC`);
+            // toast.success(`Deposit verified! Credited ${data.newBalance - internalBalance} CC`);
             setInternalBalance(data.newBalance);
             setShowDepositDialog(false);
             setDepositTxHash("");
             setHasDeposited(true); // Mark that user has successfully deposited
+            setShowSuccessDialog(true); // Show success popup
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -194,19 +198,45 @@ const DashboardContent = () => {
     };
 
     // Mock exchange rate
-    const CC_RATE = 0.084;
+    const CC_RATE = 0.081;
     const totalBalance = internalBalance * CC_RATE;
 
     if (status === "loading" || loading) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <p className="text-muted-foreground">Loading...</p>
+            <div className="flex items-center justify-center h-screen bg-background">
+                <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-4 border-[#00ff9d]/30 border-t-[#00ff9d] animate-spin"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00ff9d] to-[#00d9ff] animate-pulse"></div>
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background pb-24">
+        <div className="min-h-screen bg-background pb-24 relative">
+            {/* Processing Overlay */}
+            {verifyingDeposit && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="relative mb-8">
+                        {/* Outer rotating ring */}
+                        <div className="w-32 h-32 rounded-full border-4 border-transparent border-t-[#00ff9d] border-r-[#00d9ff] animate-spin"></div>
+                        {/* Inner rotating ring (reverse) */}
+                        <div className="absolute top-2 left-2 w-28 h-28 rounded-full border-4 border-transparent border-b-purple-500 border-l-pink-500 animate-spin-reverse"></div>
+                        {/* Center glowing orb */}
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00ff9d] to-[#00d9ff] blur-md animate-pulse"></div>
+                            <div className="absolute top-0 left-0 w-16 h-16 rounded-full bg-gradient-to-br from-[#00ff9d] to-[#00d9ff] opacity-50"></div>
+                        </div>
+                    </div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent animate-pulse">
+                        Verifying Transaction...
+                    </h2>
+                    <p className="text-muted-foreground mt-2">Please wait while we confirm your deposit</p>
+                </div>
+            )}
+
             <div className="w-full max-w-md mx-auto">
                 {/* Header */}
                 <div className="p-4 flex items-center justify-between">
@@ -313,7 +343,7 @@ const DashboardContent = () => {
                                         {hasDeposited ? (
                                             <>
                                                 <Tag className="mr-2 h-4 w-4" />
-                                                Purchase Tag
+                                                Get Tag
                                             </>
                                         ) : (
                                             "Deposit"
@@ -362,11 +392,17 @@ const DashboardContent = () => {
                                     className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00d9ff] to-[#00ff9d] flex items-center justify-center text-black font-bold text-lg shadow-lg">
-                                            C
+                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                                            <Image
+                                                src="/canton-icon.png"
+                                                alt="Canton Coin"
+                                                width={48}
+                                                height={48}
+                                                className="object-cover"
+                                            />
                                         </div>
                                         <div>
-                                            <div className="font-bold text-foreground">Canton Coin</div>
+                                            <div className="font-semibold text-foreground">Canton</div>
                                             <div className="text-xs text-muted-foreground">CC</div>
                                         </div>
                                     </div>
@@ -376,6 +412,66 @@ const DashboardContent = () => {
                                         </div>
                                         <div className="text-xs text-[#00ff9d] font-semibold">
                                             +7.30% ${(internalBalance * CC_RATE).toFixed(3)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* USDCx */}
+                                <div
+                                    onClick={() => router.push('/usdcx')}
+                                    className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                                            <Image
+                                                src="/sbc-icon.png"
+                                                alt="CUSD"
+                                                width={48}
+                                                height={48}
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-foreground">CUSD</div>
+                                            <div className="text-xs text-muted-foreground">CUSD</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold text-lg bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                            0
+                                        </div>
+                                        <div className="text-xs text-[#00ff9d] font-semibold">
+                                            +0.00% $1.000
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Stable Coin */}
+                                <div
+                                    onClick={() => router.push('/stable-coin')}
+                                    className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                                            <Image
+                                                src="/stable.svg"
+                                                alt="Stable Coin"
+                                                width={48}
+                                                height={48}
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-foreground">Stable Coin</div>
+                                            <div className="text-xs text-muted-foreground">SBC</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold text-lg bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                            0
+                                        </div>
+                                        <div className="text-xs text-[#00ff9d] font-semibold">
+                                            +0.00% $1.000
                                         </div>
                                     </div>
                                 </div>
@@ -390,7 +486,7 @@ const DashboardContent = () => {
                                             R
                                         </div>
                                         <div>
-                                            <div className="font-bold text-foreground">Reward Points</div>
+                                            <div className="font-semibold text-foreground">Rewards</div>
                                             <div className="text-xs text-muted-foreground">Points</div>
                                         </div>
                                     </div>
@@ -421,7 +517,7 @@ const DashboardContent = () => {
                         <DialogHeader>
                             <DialogTitle>Deposit Canton Coin</DialogTitle>
                             <DialogDescription>
-                                Send 30 CC to the treasury address below to receive 200 Internal CC.
+                                Send 30 CC to the treasury address below to receive 200 CC.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
@@ -458,6 +554,54 @@ const DashboardContent = () => {
                                 {verifyingDeposit ? "Verifying..." : "Verify Deposit"}
                             </Button>
                         </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Success Dialog */}
+                <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+                    <DialogContent className="bg-transparent border-none shadow-none p-0 max-w-sm">
+                        <Card className="p-6 bg-gradient-to-br from-[#00ff9d]/20 via-[#00d9ff]/20 to-purple-500/20 border-none shadow-xl rounded-3xl relative overflow-hidden">
+                            {/* Decorative elements */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#00ff9d]/30 to-transparent rounded-full blur-3xl"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[#00d9ff]/30 to-transparent rounded-full blur-2xl"></div>
+
+                            <div className="relative z-10 flex flex-col items-center text-center">
+                                <div className="w-16 h-16 bg-gradient-to-br from-[#00ff9d] to-[#00d9ff] rounded-full flex items-center justify-center mb-4 shadow-lg animate-bounce">
+                                    <PartyPopper className="h-8 w-8 text-black" />
+                                </div>
+
+                                <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                    Deposit Verified!
+                                </h2>
+
+                                <p className="text-foreground mb-4 font-medium">
+                                    You have been successfully credited 200 CC for your internal transaction.
+                                </p>
+
+                                <p className="text-sm text-muted-foreground mb-6">
+                                    Your deposit is now under review, and you will continue to earn rewards during this period.
+                                </p>
+
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-6 w-full text-left">
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-xl">⚠️</span>
+                                        <div>
+                                            <p className="text-yellow-500 font-bold text-sm mb-1">Important:</p>
+                                            <p className="text-yellow-500/90 text-xs">
+                                                Please ensure that you submitted the correct and authentic transaction hash, or you may lose your reward.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={() => setShowSuccessDialog(false)}
+                                    className="w-full bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-12"
+                                >
+                                    Awesome!
+                                </Button>
+                            </div>
+                        </Card>
                     </DialogContent>
                 </Dialog>
             </div>

@@ -68,35 +68,27 @@ const AuthContent = () => {
             });
 
             if (!whitelistCheck.ok) {
-                // Log error but treat as "unknown" status - safer to block/warn than fail open if critical
-                console.error("Whitelist API error status:", whitelistCheck.status);
-                // For now, if API fails, we should probably stop to prevent unauthorized access if that's the goal.
-                // Or we can let it fall through to NextAuth which also checks whitelist? 
-                // NextAuth credentials provider checks whitelist. NextAuth email provider... 
-                // The user said "email not on whitelist... redirected to recovery".
-                // We must catch it here.
-                throw new Error("Service unavailable");
-            }
+                console.error("Whitelist API error status:", whitelistCheck.ok);
+                console.warn("Whitelist API unavailable, proceeding with sign-in. NextAuth will validate.");
+            } else {
+                const whitelistData = await whitelistCheck.json();
 
-            const whitelistData = await whitelistCheck.json();
+                if (whitelistData.error) {
+                    console.error("Whitelist API returned error:", whitelistData.error);
+                } else {
+                    isWhitelisted = whitelistData.isWhitelisted;
+                    userExists = whitelistData.userExists;
 
-            if (whitelistData.error) {
-                throw new Error(whitelistData.error);
-            }
-
-            isWhitelisted = whitelistData.isWhitelisted;
-            userExists = whitelistData.userExists;
-
-            if (!isWhitelisted) {
-                setError("This email is not whitelisted. Please contact support.");
-                setEmailLoading(false);
-                return;
+                    if (!isWhitelisted) {
+                        setError("This email is not whitelisted. Please contact support.");
+                        setEmailLoading(false);
+                        return;
+                    }
+                }
             }
         } catch (err) {
             console.error("Whitelist check error:", err);
-            setError("Unable to verify email status. Please check your connection.");
-            setEmailLoading(false);
-            return;
+            console.warn("Whitelist check failed, proceeding with sign-in. NextAuth will validate.");
         }
 
         // Check if biometric is available

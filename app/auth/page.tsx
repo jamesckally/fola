@@ -54,26 +54,75 @@ const AuthContent = () => {
         setError(null);
         setBiometricError(null);
 
-        // Check if biometric is available and registered
-        if (isAvailable && !isRegistered) {
-            // User is on a new device without biometric registered
-            // Redirect to recovery phrase page for biometric registration
-            toast.info("Please use your recovery phrase to set up biometric on this device");
-            router.push("/recover");
+        let isWhitelisted = false;
+        let userExists = false;
+
+
+
+        // First, check if email is whitelisted and if user exists
+        try {
+            const whitelistCheck = await fetch('/api/whitelist/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email.trim().toLowerCase() })
+            });
+
+            if (!whitelistCheck.ok) {
+                // Log error but treat as "unknown" status - safer to block/warn than fail open if critical
+                console.error("Whitelist API error status:", whitelistCheck.status);
+                // For now, if API fails, we should probably stop to prevent unauthorized access if that's the goal.
+                // Or we can let it fall through to NextAuth which also checks whitelist? 
+                // NextAuth credentials provider checks whitelist. NextAuth email provider... 
+                // The user said "email not on whitelist... redirected to recovery".
+                // We must catch it here.
+                throw new Error("Service unavailable");
+            }
+
+            const whitelistData = await whitelistCheck.json();
+
+            if (whitelistData.error) {
+                throw new Error(whitelistData.error);
+            }
+
+            isWhitelisted = whitelistData.isWhitelisted;
+            userExists = whitelistData.userExists;
+
+            if (!isWhitelisted) {
+                setError("This email is not whitelisted. Please contact support.");
+                setEmailLoading(false);
+                return;
+            }
+        } catch (err) {
+            console.error("Whitelist check error:", err);
+            setError("Unable to verify email status. Please check your connection.");
             setEmailLoading(false);
             return;
         }
 
-        // If biometric is available and registered, authenticate
-        if (isAvailable && isRegistered) {
-            setShowBiometricPrompt(true);
-            const authResult = await authenticate();
-            setShowBiometricPrompt(false);
+        // Check if biometric is available
+        if (isAvailable) {
+            // Case 1: REGISTERED on this device -> Authenticate
+            if (isRegistered) {
+                setShowBiometricPrompt(true);
+                const authResult = await authenticate();
+                setShowBiometricPrompt(false);
 
-            if (!authResult.success) {
-                setBiometricError(authResult.error || "Biometric authentication failed");
-                setEmailLoading(false);
-                return;
+                if (!authResult.success) {
+                    setBiometricError(authResult.error || "Biometric authentication failed");
+                    setEmailLoading(false);
+                    return;
+                }
+            }
+            // Case 2: NOT REGISTERED on this device
+            else {
+                // Only redirect to recovery if the user ALREADY EXISTS (New device login)
+                if (userExists) {
+                    toast.info("Please use your recovery phrase to set up biometric on this device");
+                    router.push("/recover");
+                    setEmailLoading(false);
+                    return;
+                }
+                // If user doesn't exist (New Account), PROCEED without redirect.
             }
         }
 

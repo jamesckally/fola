@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, AlertTriangle, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
+import { useBiometric } from "@/hooks/useBiometric";
+import { BiometricPrompt } from "@/components/BiometricPrompt";
 
 const SetupWallet = () => {
     const router = useRouter();
@@ -19,6 +21,9 @@ const SetupWallet = () => {
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const generatingRef = useRef(false); // Use ref to prevent double-firing in Strict Mode
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+    const [biometricError, setBiometricError] = useState<string | null>(null);
+    const { isAvailable, isRegistered, authenticate, register } = useBiometric();
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -53,15 +58,60 @@ const SetupWallet = () => {
         toast.success("Recovery phrase copied to clipboard");
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (!saved) return;
-        // Pass the mnemonic to the verification page via state or just navigate
-        // Since we can't easily pass state via router.push in Next.js app dir without query params (which is unsafe for mnemonics),
-        // we'll rely on the user having copied it. 
-        // Actually, for verification, we need to know the mnemonic to verify against.
-        // But the server already has the encrypted mnemonic.
-        // The verification page will ask the user to input words, and send them to the server for verification.
+
+        setBiometricError(null);
+
+        // Check if biometric is available
+        if (isAvailable) {
+            const userEmail = session?.user?.email || "";
+
+            // If not registered, register first
+            if (!isRegistered && userEmail) {
+                setShowBiometricPrompt(true);
+                const registerResult = await register(userEmail);
+
+                if (!registerResult.success) {
+                    setShowBiometricPrompt(false);
+                    setBiometricError(registerResult.error || "Failed to register biometric");
+                    // Allow user to continue without biometric
+                    router.push("/verify-phrase");
+                    return;
+                }
+            }
+
+            // Authenticate with biometric
+            setShowBiometricPrompt(true);
+            const authResult = await authenticate();
+            setShowBiometricPrompt(false);
+
+            if (!authResult.success) {
+                setBiometricError(authResult.error || "Biometric authentication failed");
+                return;
+            }
+        }
+
+        // Proceed to verification page
         router.push("/verify-phrase");
+    };
+
+    const handleBiometricCancel = () => {
+        setShowBiometricPrompt(false);
+        setBiometricError("Biometric authentication cancelled");
+    };
+
+    const handleBiometricRetry = async () => {
+        setBiometricError(null);
+        setShowBiometricPrompt(true);
+        const authResult = await authenticate();
+        setShowBiometricPrompt(false);
+
+        if (!authResult.success) {
+            setBiometricError(authResult.error || "Biometric authentication failed");
+        } else {
+            router.push("/verify-phrase");
+        }
     };
 
     if (status === "loading" || (loading && mnemonic.length === 0)) {
@@ -152,7 +202,22 @@ const SetupWallet = () => {
                         Continue
                         <ArrowRight className="h-5 w-5" />
                     </Button>
+
+                    {biometricError && (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>{biometricError}</AlertDescription>
+                        </Alert>
+                    )}
                 </div>
+
+                <BiometricPrompt
+                    isOpen={showBiometricPrompt}
+                    isLoading={showBiometricPrompt}
+                    error={biometricError}
+                    onCancel={handleBiometricCancel}
+                    onRetry={biometricError ? handleBiometricRetry : undefined}
+                />
             </div>
         </div>
     );

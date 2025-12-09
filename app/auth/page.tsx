@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KeyRound, AlertCircle, Mail, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useBiometric } from "@/hooks/useBiometric";
+import { BiometricPrompt } from "@/components/BiometricPrompt";
 
 const AuthContent = () => {
     const router = useRouter();
@@ -16,6 +18,9 @@ const AuthContent = () => {
     const [error, setError] = useState<string | null>(null);
     const [email, setEmail] = useState("");
     const [emailLoading, setEmailLoading] = useState(false);
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+    const [biometricError, setBiometricError] = useState<string | null>(null);
+    const { isAvailable, isRegistered, authenticate, register } = useBiometric();
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -46,7 +51,42 @@ const AuthContent = () => {
 
         setEmailLoading(true);
         setError(null);
+        setBiometricError(null);
 
+        // Check if biometric is available
+        if (isAvailable) {
+            // If not registered, register first
+            if (!isRegistered) {
+                setShowBiometricPrompt(true);
+                const registerResult = await register(email.trim());
+
+                if (!registerResult.success) {
+                    setShowBiometricPrompt(false);
+                    setBiometricError(registerResult.error || "Failed to register biometric");
+                    setEmailLoading(false);
+                    // Allow user to continue without biometric
+                    await proceedWithSignIn();
+                    return;
+                }
+            }
+
+            // Authenticate with biometric
+            setShowBiometricPrompt(true);
+            const authResult = await authenticate();
+            setShowBiometricPrompt(false);
+
+            if (!authResult.success) {
+                setBiometricError(authResult.error || "Biometric authentication failed");
+                setEmailLoading(false);
+                return;
+            }
+        }
+
+        // Proceed with NextAuth sign-in
+        await proceedWithSignIn();
+    };
+
+    const proceedWithSignIn = async () => {
         try {
             const result = await signIn("email", {
                 email: email.trim(),
@@ -64,6 +104,25 @@ const AuthContent = () => {
             setError("An error occurred. Please try again.");
         } finally {
             setEmailLoading(false);
+        }
+    };
+
+    const handleBiometricCancel = () => {
+        setShowBiometricPrompt(false);
+        setEmailLoading(false);
+        setBiometricError("Biometric authentication cancelled");
+    };
+
+    const handleBiometricRetry = async () => {
+        setBiometricError(null);
+        setShowBiometricPrompt(true);
+        const authResult = await authenticate();
+        setShowBiometricPrompt(false);
+
+        if (!authResult.success) {
+            setBiometricError(authResult.error || "Biometric authentication failed");
+        } else {
+            await proceedWithSignIn();
         }
     };
 
@@ -94,6 +153,13 @@ const AuthContent = () => {
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {biometricError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{biometricError}</AlertDescription>
                         </Alert>
                     )}
 
@@ -194,6 +260,14 @@ const AuthContent = () => {
                         By continuing, you agree to our Terms of Service and Privacy Policy
                     </p>
                 </Card>
+
+                <BiometricPrompt
+                    isOpen={showBiometricPrompt}
+                    isLoading={emailLoading && showBiometricPrompt}
+                    error={biometricError}
+                    onCancel={handleBiometricCancel}
+                    onRetry={biometricError ? handleBiometricRetry : undefined}
+                />
             </div>
         </div>
     );

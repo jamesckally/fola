@@ -7,7 +7,7 @@ let bip32: any = null;
 const loadBip32 = () => {
     if (!bip32 && typeof window === 'undefined') {
         const { BIP32Factory } = require('bip32');
-        const ecc = require('tiny-secp256k1');
+        const ecc = require('@noble/secp256k1');
         bip32 = BIP32Factory(ecc);
     }
     return bip32;

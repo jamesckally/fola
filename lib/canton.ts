@@ -40,7 +40,8 @@ export function deriveCantonPartyId(mnemonic: string): string {
         // Derive key using Canton's derivation path
         const bip32Instance = loadBip32();
         if (!bip32Instance) {
-            throw new Error('BIP32 library failed to load');
+            console.error('BIP32 library failed to load. Ensure bip32 and tiny-secp256k1 are installed.');
+            throw new Error('BIP32 library failed to load. This may be a server configuration issue.');
         }
 
         const root = bip32Instance.fromSeed(seed);
@@ -62,9 +63,14 @@ export function deriveCantonPartyId(mnemonic: string): string {
 
         // Return Canton Party ID format
         return `${namespace}::${partyName}`;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deriving Canton Party ID:', error);
-        throw new Error('Failed to derive Canton address');
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            mnemonicLength: mnemonic ? mnemonic.split(' ').length : 0
+        });
+        throw new Error(`Failed to derive Canton address: ${error.message}`);
     }
 }
 

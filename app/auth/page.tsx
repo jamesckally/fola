@@ -10,6 +10,7 @@ import { KeyRound, AlertCircle, Mail, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBiometric } from "@/hooks/useBiometric";
 import { BiometricPrompt } from "@/components/BiometricPrompt";
+import { toast } from "sonner";
 
 const AuthContent = () => {
     const router = useRouter();
@@ -53,24 +54,18 @@ const AuthContent = () => {
         setError(null);
         setBiometricError(null);
 
-        // Check if biometric is available
-        if (isAvailable) {
-            // If not registered, register first
-            if (!isRegistered) {
-                setShowBiometricPrompt(true);
-                const registerResult = await register(email.trim());
+        // Check if biometric is available and registered
+        if (isAvailable && !isRegistered) {
+            // User is on a new device without biometric registered
+            // Redirect to recovery phrase page for biometric registration
+            toast.info("Please use your recovery phrase to set up biometric on this device");
+            router.push("/recover");
+            setEmailLoading(false);
+            return;
+        }
 
-                if (!registerResult.success) {
-                    setShowBiometricPrompt(false);
-                    setBiometricError(registerResult.error || "Failed to register biometric");
-                    setEmailLoading(false);
-                    // Allow user to continue without biometric
-                    await proceedWithSignIn();
-                    return;
-                }
-            }
-
-            // Authenticate with biometric
+        // If biometric is available and registered, authenticate
+        if (isAvailable && isRegistered) {
             setShowBiometricPrompt(true);
             const authResult = await authenticate();
             setShowBiometricPrompt(false);

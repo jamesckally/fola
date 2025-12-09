@@ -9,12 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { KeyRound, AlertTriangle, Loader2, ArrowRight, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
+import { useBiometric } from "@/hooks/useBiometric";
+import { BiometricPrompt } from "@/components/BiometricPrompt";
 
 const RecoverWallet = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [words, setWords] = useState<string[]>(Array(12).fill(""));
     const [error, setError] = useState<string | null>(null);
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+    const [biometricError, setBiometricError] = useState<string | null>(null);
+    const [recoveredEmail, setRecoveredEmail] = useState<string | null>(null);
+    const { isAvailable, isRegistered, register } = useBiometric();
 
     const handlePaste = async () => {
         try {
@@ -42,6 +48,7 @@ const RecoverWallet = () => {
 
         setLoading(true);
         setError(null);
+        setBiometricError(null);
 
         try {
             const phrase = words.map(w => w.trim().toLowerCase()).join(" ");
@@ -53,15 +60,58 @@ const RecoverWallet = () => {
 
             if (result?.error) {
                 setError("Invalid recovery phrase. Please check and try again.");
+                setLoading(false);
             } else if (result?.ok) {
                 toast.success("Wallet recovered successfully!");
+
+                // After successful recovery, register biometric if available and not registered
+                if (isAvailable && !isRegistered) {
+                    // We need to get the user's email from the session
+                    // For now, we'll prompt biometric registration
+                    setShowBiometricPrompt(true);
+
+                    // Use a placeholder email - in production, fetch from session
+                    const userEmail = "user@recovered.wallet";
+                    const registerResult = await register(userEmail);
+                    setShowBiometricPrompt(false);
+
+                    if (registerResult.success) {
+                        toast.success("Biometric registered on this device!");
+                    } else {
+                        // Don't block login if biometric registration fails
+                        setBiometricError(registerResult.error || "Failed to register biometric");
+                    }
+                }
+
+                // Redirect to dashboard
                 router.push("/dashboard");
             }
         } catch (err) {
             console.error("Login error:", err);
             setError("An error occurred. Please try again.");
-        } finally {
             setLoading(false);
+        }
+    };
+
+    const handleBiometricCancel = () => {
+        setShowBiometricPrompt(false);
+        setBiometricError("Biometric registration cancelled");
+        // Still proceed to dashboard
+        router.push("/dashboard");
+    };
+
+    const handleBiometricRetry = async () => {
+        setBiometricError(null);
+        setShowBiometricPrompt(true);
+        const userEmail = "user@recovered.wallet";
+        const registerResult = await register(userEmail);
+        setShowBiometricPrompt(false);
+
+        if (!registerResult.success) {
+            setBiometricError(registerResult.error || "Failed to register biometric");
+        } else {
+            toast.success("Biometric registered successfully!");
+            router.push("/dashboard");
         }
     };
 
@@ -136,7 +186,22 @@ const RecoverWallet = () => {
                             </>
                         )}
                     </Button>
+
+                    {biometricError && (
+                        <Alert variant="destructive" className="mt-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>{biometricError}</AlertDescription>
+                        </Alert>
+                    )}
                 </Card>
+
+                <BiometricPrompt
+                    isOpen={showBiometricPrompt}
+                    isLoading={showBiometricPrompt}
+                    error={biometricError}
+                    onCancel={handleBiometricCancel}
+                    onRetry={biometricError ? handleBiometricRetry : undefined}
+                />
             </div>
         </div>
     );

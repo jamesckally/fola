@@ -26,7 +26,7 @@ const CantonPage = () => {
 
     const loadBalance = async () => {
         try {
-            const data: any = await api.balance.get();
+            const data: any = await api.balances.getAll();
             setBalance(data?.balance || 0);
         } catch (error) {
             console.error("Error loading balance:", error);

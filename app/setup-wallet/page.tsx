@@ -23,7 +23,7 @@ const SetupWallet = () => {
     const generatingRef = useRef(false); // Use ref to prevent double-firing in Strict Mode
     const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
     const [biometricError, setBiometricError] = useState<string | null>(null);
-    const { isAvailable, isRegistered, authenticate, register } = useBiometric();
+    const { isAvailable, isRegistered, authenticate, register } = useBiometric(session?.user?.email || "");
 
     useEffect(() => {
         if (status === "unauthenticated") {

@@ -21,7 +21,9 @@ const AuthContent = () => {
     const [emailLoading, setEmailLoading] = useState(false);
     const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
     const [biometricError, setBiometricError] = useState<string | null>(null);
-    const { isAvailable, isRegistered, authenticate, register } = useBiometric();
+    // Only check biometric for valid email (contains @)
+    const validEmail = email.includes("@") ? email : undefined;
+    const { isAvailable, isRegistered, authenticate, register } = useBiometric(validEmail);
 
     useEffect(() => {
         if (status === "authenticated") {

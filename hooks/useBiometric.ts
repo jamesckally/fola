@@ -6,7 +6,7 @@ import {
     isBiometricRegistered,
 } from "@/lib/biometric";
 
-export function useBiometric() {
+export function useBiometric(userEmail?: string) {
     const [isAvailable, setIsAvailable] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
     const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -15,8 +15,14 @@ export function useBiometric() {
     useEffect(() => {
         // Check availability on mount
         isBiometricAvailable().then(setIsAvailable);
-        setIsRegistered(isBiometricRegistered());
-    }, []);
+
+        // Check if registered for this specific email
+        if (userEmail) {
+            setIsRegistered(isBiometricRegistered(userEmail));
+        } else {
+            setIsRegistered(false);
+        }
+    }, [userEmail]);
 
     /**
      * Authenticate user with biometric
@@ -30,9 +36,13 @@ export function useBiometric() {
             return { success: false, error: "Biometric not registered. Please register first." };
         }
 
+        if (!userEmail) {
+            return { success: false, error: "User email is required for authentication" };
+        }
+
         setIsAuthenticating(true);
         try {
-            const result = await authenticateBiometric();
+            const result = await authenticateBiometric(userEmail);
             return result;
         } finally {
             setIsAuthenticating(false);
@@ -42,14 +52,14 @@ export function useBiometric() {
     /**
      * Register biometric credential for user
      */
-    const register = async (userEmail: string): Promise<{ success: boolean; error?: string }> => {
+    const register = async (email: string): Promise<{ success: boolean; error?: string }> => {
         if (!isAvailable) {
             return { success: false, error: "Biometric authentication not available on this device" };
         }
 
         setIsRegistering(true);
         try {
-            const result = await registerBiometric(userEmail);
+            const result = await registerBiometric(email);
             if (result.success) {
                 setIsRegistered(true);
             }

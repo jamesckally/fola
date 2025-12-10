@@ -66,20 +66,26 @@ const RecoverWallet = () => {
 
                 // After successful recovery, register biometric if available and not registered
                 if (isAvailable && !isRegistered) {
-                    // We need to get the user's email from the session
-                    // For now, we'll prompt biometric registration
                     setShowBiometricPrompt(true);
 
-                    // Use a placeholder email - in production, fetch from session
-                    const userEmail = "user@recovered.wallet";
-                    const registerResult = await register(userEmail);
-                    setShowBiometricPrompt(false);
+                    // Fetch the user's email from the session
+                    const sessionResponse = await fetch('/api/auth/session');
+                    const sessionData = await sessionResponse.json();
+                    const userEmail = sessionData?.user?.email;
 
-                    if (registerResult.success) {
-                        toast.success("Biometric registered on this device!");
+                    if (userEmail) {
+                        const registerResult = await register(userEmail);
+                        setShowBiometricPrompt(false);
+
+                        if (registerResult.success) {
+                            toast.success("Biometric registered on this device!");
+                        } else {
+                            // Don't block login if biometric registration fails
+                            setBiometricError(registerResult.error || "Failed to register biometric");
+                        }
                     } else {
-                        // Don't block login if biometric registration fails
-                        setBiometricError(registerResult.error || "Failed to register biometric");
+                        setShowBiometricPrompt(false);
+                        console.error("Could not get user email from session");
                     }
                 }
 

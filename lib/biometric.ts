@@ -70,10 +70,10 @@ export async function registerBiometric(userEmail: string): Promise<{ success: b
             return { success: false, error: "Failed to create credential" };
         }
 
-        // Store credential ID in localStorage
+        // Store credential ID in localStorage (email-specific key)
         const credentialId = arrayBufferToBase64(credential.rawId);
-        localStorage.setItem("biometric_credential_id", credentialId);
-        localStorage.setItem("biometric_user_email", userEmail);
+        const storageKey = `biometric_credential_${userEmail}`;
+        localStorage.setItem(storageKey, credentialId);
 
         return { success: true, credentialId };
     } catch (error: any) {
@@ -90,10 +90,11 @@ export async function registerBiometric(userEmail: string): Promise<{ success: b
 /**
  * Authenticate using biometric credential
  */
-export async function authenticateBiometric(): Promise<{ success: boolean; error?: string }> {
+export async function authenticateBiometric(userEmail: string): Promise<{ success: boolean; error?: string }> {
     try {
-        // Get stored credential ID
-        const storedCredentialId = localStorage.getItem("biometric_credential_id");
+        // Get stored credential ID for this specific email
+        const storageKey = `biometric_credential_${userEmail}`;
+        const storedCredentialId = localStorage.getItem(storageKey);
 
         if (!storedCredentialId) {
             return { success: false, error: "No biometric credential found. Please register first." };
@@ -140,20 +141,35 @@ export async function authenticateBiometric(): Promise<{ success: boolean; error
 }
 
 /**
- * Check if user has registered biometric credential
+ * Check if user has registered biometric credential for specific email
  */
-export function isBiometricRegistered(): boolean {
+export function isBiometricRegistered(userEmail: string): boolean {
     if (typeof window === "undefined") return false;
-    return !!localStorage.getItem("biometric_credential_id");
+    const storageKey = `biometric_credential_${userEmail}`;
+    return !!localStorage.getItem(storageKey);
 }
 
 /**
- * Clear stored biometric credentials
+ * Clear stored biometric credentials for specific email
  */
-export function clearBiometricCredentials(): void {
+export function clearBiometricCredentials(userEmail: string): void {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("biometric_credential_id");
-    localStorage.removeItem("biometric_user_email");
+    const storageKey = `biometric_credential_${userEmail}`;
+    localStorage.removeItem(storageKey);
+}
+
+/**
+ * Clear ALL biometric credentials (for logout/cleanup)
+ */
+export function clearAllBiometricCredentials(): void {
+    if (typeof window === "undefined") return;
+    // Clear all biometric_credential_* keys
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+        if (key.startsWith("biometric_credential_")) {
+            localStorage.removeItem(key);
+        }
+    });
 }
 
 // Helper functions

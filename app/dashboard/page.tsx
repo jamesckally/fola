@@ -270,7 +270,8 @@ const DashboardContent = () => {
                 {/* Wallet Overview */}
                 <div className="px-4 mb-6">
                     <Card className="p-6 bg-[#1a1f2e] border-none text-white shadow-lg rounded-2xl relative overflow-hidden">
-                        <div className="flex items-center gap-2 mb-4">
+                        {/* Synced indicator - moved to top right */}
+                        <div className="absolute top-4 right-4">
                             {syncStatus === 'synced' && (
                                 <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md shadow-[0_0_15px_rgba(0,255,157,0.1)]">
                                     <div className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] rounded-full p-0.5">
@@ -299,8 +300,21 @@ const DashboardContent = () => {
                             )}
                         </div>
                         <div className="flex justify-between items-start mb-2">
-                            <span className="text-gray-400 text-sm">TOTAL BALANCE (USD)</span>
-                            <span className="text-[#00ff9d] text-sm">CC ${CC_RATE.toFixed(4)}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-400 text-sm">Wallet overview</span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setBalanceHidden(!balanceHidden)}
+                                    className="h-6 w-6 hover:bg-white/10 transition-colors"
+                                >
+                                    {balanceHidden ? (
+                                        <EyeOff className="h-4 w-4 text-gray-400" />
+                                    ) : (
+                                        <Eye className="h-4 w-4 text-gray-400" />
+                                    )}
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="flex justify-between items-end">
@@ -309,29 +323,17 @@ const DashboardContent = () => {
                                     <h1 className="text-4xl font-bold mb-1">
                                         {balanceHidden ? "••••••" : `$${totalBalance.toFixed(2)}`}
                                     </h1>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setBalanceHidden(!balanceHidden)}
-                                        className="h-8 w-8 hover:bg-white/10 transition-colors"
-                                    >
-                                        {balanceHidden ? (
-                                            <EyeOff className="h-5 w-5 text-gray-400" />
-                                        ) : (
-                                            <Eye className="h-5 w-5 text-gray-400" />
-                                        )}
-                                    </Button>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[#00ff9d] text-sm">+7.30%</span>
+                                    <span className="text-[#00ff9d] text-sm">+0.00%</span>
                                     <span className="text-gray-400 text-sm">24h</span>
                                 </div>
                             </div>
                             <div className="text-right">
                                 {countdownEndDate ? (
-                                    <div className="bg-background/50 backdrop-blur-sm rounded-xl px-4 py-2 border border-[#00ff9d]/30">
-                                        <div className="text-xs text-muted-foreground mb-1">Rewards Ending In</div>
-                                        <div className="text-sm font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                    <div className="bg-background/50 backdrop-blur-sm rounded-lg px-2 py-1 border border-[#00ff9d]/30">
+                                        <div className="text-[10px] text-muted-foreground mb-0.5">Rewards Ending In</div>
+                                        <div className="text-xs font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
                                             {timeRemaining}
                                         </div>
                                     </div>

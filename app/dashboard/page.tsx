@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Loading } from "@/components/Loading";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,8 +42,10 @@ const DashboardContent = () => {
     const [verifyingDeposit, setVerifyingDeposit] = useState(false);
     const [balanceHidden, setBalanceHidden] = useState(false);
     const [hasDeposited, setHasDeposited] = useState(false);
-    const [countdownEndDate, setCountdownEndDate] = useState<Date | null>(null);
     const [timeRemaining, setTimeRemaining] = useState("");
+
+    // Global countdown end date - 6 days 3 hours from 2025-12-10 15:07:49 +01:00
+    const GLOBAL_COUNTDOWN_END = new Date('2025-12-16T18:07:49+01:00');
 
     // Success Dialog State
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -79,10 +82,10 @@ const DashboardContent = () => {
 
     // Check if user has deposited based on balance (persists across refreshes)
     useEffect(() => {
-        if (internalBalance >= 200 && !userTag && !countdownEndDate) {
+        if (internalBalance >= 200 && !userTag) {
             setHasDeposited(true);
         }
-    }, [internalBalance, userTag, countdownEndDate]);
+    }, [internalBalance, userTag]);
 
     const loadData = async () => {
         try {
@@ -100,12 +103,7 @@ const DashboardContent = () => {
             const tagData: any = await api.tags.get();
             if (tagData.tag_name) {
                 setUserTag(tagData.tag_name);
-                // Check if there's a countdown end date
-                if (tagData.countdownEndDate) {
-                    const endDate = new Date(tagData.countdownEndDate);
-                    setCountdownEndDate(endDate);
-                    setHasDeposited(true); // User has deposited if they have a tag
-                }
+                setHasDeposited(true); // User has deposited if they have a tag
             }
             setSyncStatus('synced');
         } catch (error) {
@@ -131,17 +129,14 @@ const DashboardContent = () => {
         };
     }, [syncStatus]);
 
-    // Countdown timer effect
+    // Global countdown timer effect
     useEffect(() => {
-        if (!countdownEndDate) return;
-
         const updateCountdown = () => {
             const now = new Date();
-            const diff = countdownEndDate.getTime() - now.getTime();
+            const diff = GLOBAL_COUNTDOWN_END.getTime() - now.getTime();
 
             if (diff <= 0) {
                 setTimeRemaining("Expired");
-                setCountdownEndDate(null);
                 return;
             }
 
@@ -157,7 +152,7 @@ const DashboardContent = () => {
         const interval = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(interval);
-    }, [countdownEndDate]);
+    }, []);
 
     const handleDeposit = async () => {
         if (!depositTxHash) {
@@ -198,20 +193,11 @@ const DashboardContent = () => {
     };
 
     // Mock exchange rate
-    const CC_RATE = 0.081;
+    const CC_RATE = 0.077;
     const totalBalance = internalBalance * CC_RATE;
 
     if (status === "loading" || loading) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-background">
-                <div className="relative">
-                    <div className="w-16 h-16 rounded-full border-4 border-[#00ff9d]/30 border-t-[#00ff9d] animate-spin"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00ff9d] to-[#00d9ff] animate-pulse"></div>
-                    </div>
-                </div>
-            </div>
-        );
+        return <Loading />;
     }
 
     return (
@@ -243,14 +229,14 @@ const DashboardContent = () => {
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 relative">
                             <Image
-                                src="/logo.png"
+                                src="/newlogo.png"
                                 alt="SwapaWallet Logo"
                                 width={32}
                                 height={32}
                                 className="object-contain"
                             />
                         </div>
-                        <span className="font-bold text-lg text-foreground">SwapaWallet</span>
+                        <span className="font-bold text-lg text-foreground">Swapa</span>
                     </div>
                     <div className="flex items-center gap-2">
                         {userTag ? (
@@ -330,7 +316,7 @@ const DashboardContent = () => {
                                 </div>
                             </div>
                             <div className="text-right">
-                                {countdownEndDate ? (
+                                {userTag && timeRemaining && timeRemaining !== "Expired" ? (
                                     <div className="bg-background/50 backdrop-blur-sm rounded-lg px-2 py-1 border border-[#00ff9d]/30">
                                         <div className="text-[10px] text-muted-foreground mb-0.5">Rewards Ending In</div>
                                         <div className="text-xs font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
@@ -348,7 +334,7 @@ const DashboardContent = () => {
                                                 Get Tag
                                             </>
                                         ) : (
-                                            "Deposit"
+                                            "Fund"
                                         )}
                                     </Button>
                                 )}
@@ -390,13 +376,13 @@ const DashboardContent = () => {
                             <div className="space-y-1">
                                 {/* Canton Coin */}
                                 <div
-                                    onClick={() => router.push('/send')}
+                                    onClick={() => router.push('/canton')}
                                     className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full overflow-hidden shadow-lg">
                                             <Image
-                                                src="/canton-icon.png"
+                                                src="/newcanton.png"
                                                 alt="Canton Coin"
                                                 width={32}
                                                 height={32}
@@ -409,11 +395,11 @@ const DashboardContent = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-medium text-base bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                        <div className="font-medium text-base text-foreground">
                                             {internalBalance.toFixed(6)}
                                         </div>
                                         <div className="text-xs text-[#00ff9d] font-normal">
-                                            +7.30% ${(internalBalance * CC_RATE).toFixed(3)}
+                                            +0.00% ${(internalBalance * CC_RATE).toFixed(3)}
                                         </div>
                                     </div>
                                 </div>
@@ -439,7 +425,7 @@ const DashboardContent = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-medium text-base bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                        <div className="font-medium text-base text-foreground">
                                             0
                                         </div>
                                         <div className="text-xs text-[#00ff9d] font-normal">
@@ -469,7 +455,7 @@ const DashboardContent = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-medium text-base bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                        <div className="font-medium text-base text-foreground">
                                             0
                                         </div>
                                         <div className="text-xs text-[#00ff9d] font-normal">

@@ -15,6 +15,9 @@ const TRANSFER_REWARD_POINTS = 5;
 const MAX_DAILY_TRANSFERS = 11;
 const TAG_PURCHASE_COST = 30;
 
+// Global countdown end date - 6 days 3 hours from 2025-12-10 15:07:49 +01:00
+const GLOBAL_COUNTDOWN_END = new Date('2025-12-16T18:07:49+01:00');
+
 /**
  * Generate a fake internal wallet address
  * Format: 0x... (similar to ETH but internal only)
@@ -162,10 +165,13 @@ export async function processTransfer(senderId: string, recipientEmailOrAddress:
     senderWallet.internalBalance -= amount;
     recipientWallet.internalBalance = (recipientWallet.internalBalance || 0) + amount;
 
-    // Add Reward Points
-    senderWallet.rewardPoints = (senderWallet.rewardPoints || 0) + TRANSFER_REWARD_POINTS;
+    // Add Reward Points (only if countdown hasn't ended)
+    const now = new Date();
+    const rewardPointsToAdd = now < GLOBAL_COUNTDOWN_END ? TRANSFER_REWARD_POINTS : 0;
+
+    senderWallet.rewardPoints = (senderWallet.rewardPoints || 0) + rewardPointsToAdd;
     rewardHistory.transferCount += 1;
-    rewardHistory.pointsEarned += TRANSFER_REWARD_POINTS;
+    rewardHistory.pointsEarned += rewardPointsToAdd;
 
     await senderWallet.save();
     await recipientWallet.save();

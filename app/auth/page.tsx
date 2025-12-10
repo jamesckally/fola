@@ -6,11 +6,13 @@ import { useEffect, useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { KeyRound, AlertCircle, Mail, Loader2 } from "lucide-react";
+import { KeyRound, AlertCircle, Mail, Loader2, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBiometric } from "@/hooks/useBiometric";
 import { BiometricPrompt } from "@/components/BiometricPrompt";
 import { toast } from "sonner";
+import Image from "next/image";
+import { CloudflareTurnstile } from "@/components/CloudflareTurnstile";
 
 const AuthContent = () => {
     const router = useRouter();
@@ -21,6 +23,9 @@ const AuthContent = () => {
     const [emailLoading, setEmailLoading] = useState(false);
     const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
     const [biometricError, setBiometricError] = useState<string | null>(null);
+    const [showTurnstile, setShowTurnstile] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [isNewUser, setIsNewUser] = useState(false);
     // Only check biometric for valid email (contains @)
     const validEmail = email.includes("@") ? email : undefined;
     const { isAvailable, isRegistered, authenticate, register } = useBiometric(validEmail);
@@ -83,6 +88,14 @@ const AuthContent = () => {
 
                     if (!isWhitelisted) {
                         setError("This email is not whitelisted. Please contact support.");
+                        setEmailLoading(false);
+                        return;
+                    }
+
+                    // If new user, show Turnstile
+                    if (!userExists) {
+                        setIsNewUser(true);
+                        setShowTurnstile(true);
                         setEmailLoading(false);
                         return;
                     }
@@ -164,6 +177,40 @@ const AuthContent = () => {
         }
     };
 
+    const handleTurnstileSuccess = async (token: string) => {
+        setTurnstileToken(token);
+
+        // Verify token with backend
+        try {
+            const verifyResponse = await fetch('/api/turnstile/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+                // Turnstile verified, proceed with sign-in
+                setShowTurnstile(false);
+                setEmailLoading(true);
+                await proceedWithSignIn();
+            } else {
+                setError("Verification failed. Please try again.");
+                setShowTurnstile(false);
+            }
+        } catch (err) {
+            console.error("Turnstile verification error:", err);
+            setError("Verification error. Please try again.");
+            setShowTurnstile(false);
+        }
+    };
+
+    const handleTurnstileError = () => {
+        setError("Verification failed. Please refresh and try again.");
+        setShowTurnstile(false);
+    };
+
     if (status === "loading") {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -177,13 +224,32 @@ const AuthContent = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-6">
-                <Card className="p-8 space-y-8 bg-card border-border shadow-2xl">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-[#00ff9d]/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-gradient-to-br from-[#00d9ff]/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
+            </div>
+
+            <div className="w-full max-w-md space-y-6 relative z-10">
+                <Card className="p-8 space-y-8 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border-white/20 shadow-2xl">
+                    {/* Logo */}
+                    <div className="flex justify-center">
+                        <div className="w-20 h-20 relative">
+                            <Image
+                                src="/newlogo.png"
+                                alt="Swapa Logo"
+                                width={80}
+                                height={80}
+                                className="object-contain"
+                            />
+                        </div>
+                    </div>
+
                     <div className="space-y-2 text-center">
-                        <h2 className="text-3xl font-bold text-foreground">Sign In / Sign Up</h2>
-                        <p className="text-muted-foreground">
-                            Welcome to SwapaWallet
+                        <h2 className="text-3xl font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">Welcome to Swapa</h2>
+                        <p className="text-muted-foreground text-sm">
+                            Sign in or create your account
                         </p>
                     </div>
 
@@ -204,7 +270,7 @@ const AuthContent = () => {
                     <div className="space-y-4">
                         <Button
                             onClick={handleGoogleSignIn}
-                            className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary/60 hover:opacity-90 text-primary-foreground text-base font-medium"
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] hover:opacity-90 text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300"
                         >
                             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                                 <path
@@ -229,73 +295,81 @@ const AuthContent = () => {
 
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-muted" />
+                                <span className="w-full border-t border-white/10" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-card px-2 text-muted-foreground">
+                                <span className="bg-transparent px-3 text-muted-foreground backdrop-blur-sm">
                                     Or continue with email
                                 </span>
                             </div>
                         </div>
 
                         <div className="space-y-3">
-                            <Input
-                                type="email"
-                                placeholder="Enter your whitelisted Gmail"
-                                value={email}
-                                onChange={(e) => {
-                                    setEmail(e.target.value);
-                                    setError(null);
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        handleEmailSignIn();
-                                    }
-                                }}
-                                className="h-10"
-                                disabled={emailLoading}
-                            />
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                <Input
+                                    type="email"
+                                    placeholder="Enter your whitelisted Gmail"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setError(null);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            handleEmailSignIn();
+                                        }
+                                    }}
+                                    className="h-12 pl-10 bg-white/5 border-white/10 backdrop-blur-sm focus:border-[#00ff9d]/50 transition-all"
+                                    disabled={emailLoading}
+                                />
+                            </div>
                             <Button
                                 onClick={handleEmailSignIn}
-                                className="w-full h-10 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:opacity-90 text-white text-base font-medium"
-                                disabled={emailLoading}
+                                className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] hover:opacity-90 text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 disabled:opacity-50"
+                                disabled={emailLoading || !email || showTurnstile}
                             >
                                 {emailLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        Signing in...
+                                        Processing...
                                     </>
                                 ) : (
                                     <>
-                                        <Mail className="mr-2 h-5 w-5" />
-                                        Sign In with Email
+                                        <Sparkles className="mr-2 h-5 w-5" />
+                                        Continue with Email
                                     </>
                                 )}
                             </Button>
+
+                            {/* Turnstile CAPTCHA - Only for new users */}
+                            {showTurnstile && (
+                                <div className="space-y-3">
+                                    <div className="text-center text-sm text-muted-foreground">
+                                        Please complete the verification below
+                                    </div>
+                                    <CloudflareTurnstile
+                                        onSuccess={handleTurnstileSuccess}
+                                        onError={handleTurnstileError}
+                                        onExpire={handleTurnstileError}
+                                    />
+                                </div>
+                            )}
                         </div>
 
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-muted" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-card px-2 text-muted-foreground">
-                                    Or
-                                </span>
-                            </div>
+                        <div className="text-center">
+                            <button
+                                onClick={handlePhraseLogin}
+                                className="text-sm text-muted-foreground hover:text-[#00ff9d] transition-colors inline-flex items-center gap-1"
+                            >
+                                <KeyRound className="h-4 w-4" />
+                                Recover with phrase
+                            </button>
                         </div>
-
-                        <Button
-                            onClick={handlePhraseLogin}
-                            className="w-full h-10 rounded-full bg-gradient-to-r from-secondary to-secondary/60 hover:opacity-90 text-secondary-foreground text-base font-medium"
-                        >
-                            <KeyRound className="mr-2 h-5 w-5" />
-                            Phrase Key Login
-                        </Button>
                     </div>
 
                     <p className="text-xs text-center text-muted-foreground">
-                        By continuing, you agree to our Terms of Service and Privacy Policy
+                        By continuing, you agree to Swapa's Terms of Service and Privacy Policy
                     </p>
                 </Card>
 

@@ -10,12 +10,20 @@ import {
     User,
     Key,
     ChevronRight,
-    ArrowLeft
+    ArrowLeft,
+    Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useBiometric } from "@/hooks/useBiometric";
 import { BiometricPrompt } from "@/components/BiometricPrompt";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 const Settings = () => {
     const router = useRouter();
@@ -25,6 +33,7 @@ const Settings = () => {
     const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
     const [biometricError, setBiometricError] = useState<string | null>(null);
     const [pendingUtxoValue, setPendingUtxoValue] = useState<boolean | null>(null);
+    const [showSignOutDialog, setShowSignOutDialog] = useState(false);
     const { isAvailable, authenticate } = useBiometric(session?.user?.email || "");
 
     const handleSignOut = async () => {
@@ -96,7 +105,7 @@ const Settings = () => {
         <div className="min-h-screen bg-background pb-20">
             <div className="w-full max-w-md mx-auto">
                 {/* Header */}
-                <div className="p-4 flex items-center gap-4 border-b border-border">
+                <div className="p-4 flex items-center gap-4">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -108,43 +117,57 @@ const Settings = () => {
                     <h1 className="text-2xl font-bold">Settings</h1>
                 </div>
 
-                <div className="p-4 space-y-4">
-                    {/* User Info Card */}
-                    <Card className="p-4 bg-card border-border">
-                        <div className="flex items-center gap-4">
+                <div className="p-4">
+                    {/* Combined Card - User Info + Features */}
+                    <Card className="bg-card border-border overflow-hidden">
+                        {/* User Info */}
+                        <div className="flex items-center gap-4 p-4 border-b border-border/50">
                             <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
                                 <span className="text-2xl font-bold text-primary-foreground">
                                     {userEmail.charAt(0).toUpperCase()}
                                 </span>
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <p className="font-semibold text-foreground text-lg">{userEmail}</p>
-                                <p className="text-sm text-muted-foreground">{shortAddress}</p>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(walletAddress);
+                                        toast.success("Wallet address copied!");
+                                    }}
+                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                                >
+                                    <span>{shortAddress}</span>
+                                    <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
                             </div>
                         </div>
-                    </Card>
 
-                    {/* Menu Items */}
-                    <div className="space-y-3">
-                        {menuItems.map((item, index) => (
-                            <Card key={index} className="bg-card border-border">
-                                <button
-                                    className="w-full flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors rounded-lg"
-                                    onClick={item.onClick}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <item.icon className={`h-6 w-6 ${item.color}`} />
-                                        <span className="text-foreground">{item.label}</span>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                </button>
-                            </Card>
-                        ))}
-                    </div>
+                        {/* Account Management */}
+                        <button
+                            className="w-full flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors border-b border-border/50"
+                            onClick={() => router.push("/settings/account")}
+                        >
+                            <div className="flex items-center gap-3">
+                                <User className="h-6 w-6 text-primary" />
+                                <span className="text-foreground">Account Management</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </button>
 
-                    {/* UTXO Management */}
-                    <Card className="p-4 bg-card border-border">
-                        <div className="flex items-center justify-between">
+                        {/* Private Key */}
+                        <button
+                            className="w-full flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors border-b border-border/50"
+                            onClick={() => router.push("/settings/private-key")}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Key className="h-6 w-6 text-primary" />
+                                <span className="text-foreground">Private Key</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </button>
+
+                        {/* UTXO Management */}
+                        <div className="flex items-center justify-between p-4 border-b border-border/50">
                             <div>
                                 <p className="text-foreground">UTXO Management</p>
                                 <p className="text-sm text-muted-foreground">Optimize transaction outputs</p>
@@ -154,20 +177,51 @@ const Settings = () => {
                                 onCheckedChange={handleUtxoToggle}
                             />
                         </div>
-                    </Card>
 
-                    {/* Sign Out Button */}
-                    <Button
-                        variant="outline"
-                        className="w-full mt-6 h-12 border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/40 transition-all duration-300 group"
-                        onClick={handleSignOut}
-                    >
-                        <div className="flex items-center gap-2 font-semibold">
-                            <span>Sign Out</span>
-                            <ArrowLeft className="h-4 w-4 rotate-180 group-hover:translate-x-1 transition-transform" />
-                        </div>
-                    </Button>
+                        {/* Sign Out */}
+                        <button
+                            className="w-full flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors group"
+                            onClick={() => setShowSignOutDialog(true)}
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className="text-red-500 font-semibold">Sign Out</span>
+                            </div>
+                            <ArrowLeft className="h-4 w-4 text-red-500 rotate-180 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </Card>
                 </div>
+
+                {/* Sign Out Confirmation Dialog */}
+                <Dialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+                    <DialogContent className="bg-gradient-to-br from-[#00ff9d]/10 via-[#00d9ff]/10 to-purple-500/10 border-border backdrop-blur-xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                Sign Out?
+                            </DialogTitle>
+                            <DialogDescription className="text-muted-foreground text-base">
+                                Are you sure you want to sign out of your account?
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex gap-3 mt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowSignOutDialog(false)}
+                                className="flex-1 h-12 border-border hover:bg-secondary/20 transition-all duration-300"
+                            >
+                                Stay in App
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setShowSignOutDialog(false);
+                                    handleSignOut();
+                                }}
+                                className="flex-1 h-12 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold shadow-lg hover:shadow-red-500/20 hover:scale-105 transition-all duration-300"
+                            >
+                                Log Out
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 <BiometricPrompt
                     isOpen={showBiometricPrompt}

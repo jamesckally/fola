@@ -387,32 +387,32 @@ const DashboardContent = () => {
                         <div className="relative z-10">
                             <h2 className="text-lg font-bold mb-4 bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">My Tokens</h2>
 
-                            <div className="space-y-4">
+                            <div className="space-y-1">
                                 {/* Canton Coin */}
                                 <div
                                     onClick={() => router.push('/send')}
                                     className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                                        <div className="w-8 h-8 rounded-full overflow-hidden shadow-lg">
                                             <Image
                                                 src="/canton-icon.png"
                                                 alt="Canton Coin"
-                                                width={48}
-                                                height={48}
+                                                width={32}
+                                                height={32}
                                                 className="object-cover"
                                             />
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-foreground">Canton</div>
+                                            <div className="font-medium text-sm text-foreground">Canton</div>
                                             <div className="text-xs text-muted-foreground">CC</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-bold text-lg bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                        <div className="font-medium text-base bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
                                             {internalBalance.toFixed(6)}
                                         </div>
-                                        <div className="text-xs text-[#00ff9d] font-semibold">
+                                        <div className="text-xs text-[#00ff9d] font-normal">
                                             +7.30% ${(internalBalance * CC_RATE).toFixed(3)}
                                         </div>
                                     </div>
@@ -424,25 +424,25 @@ const DashboardContent = () => {
                                     className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                                        <div className="w-8 h-8 rounded-full overflow-hidden shadow-lg">
                                             <Image
                                                 src="/sbc-icon.png"
                                                 alt="CUSD"
-                                                width={48}
-                                                height={48}
+                                                width={32}
+                                                height={32}
                                                 className="object-cover"
                                             />
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-foreground">CUSD</div>
+                                            <div className="font-medium text-sm text-foreground">CUSD</div>
                                             <div className="text-xs text-muted-foreground">CUSD</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-bold text-lg bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                        <div className="font-medium text-base bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
                                             0
                                         </div>
-                                        <div className="text-xs text-[#00ff9d] font-semibold">
+                                        <div className="text-xs text-[#00ff9d] font-normal">
                                             +0.00% $1.000
                                         </div>
                                     </div>
@@ -454,25 +454,25 @@ const DashboardContent = () => {
                                     className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                                        <div className="w-8 h-8 rounded-full overflow-hidden shadow-lg">
                                             <Image
                                                 src="/stable.svg"
                                                 alt="Stable Coin"
-                                                width={48}
-                                                height={48}
+                                                width={32}
+                                                height={32}
                                                 className="object-cover"
                                             />
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-foreground">Stable Coin</div>
+                                            <div className="font-medium text-sm text-foreground">Stable Coin</div>
                                             <div className="text-xs text-muted-foreground">SBC</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-bold text-lg bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                        <div className="font-medium text-base bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
                                             0
                                         </div>
-                                        <div className="text-xs text-[#00ff9d] font-semibold">
+                                        <div className="text-xs text-[#00ff9d] font-normal">
                                             +0.00% $1.000
                                         </div>
                                     </div>
@@ -484,16 +484,16 @@ const DashboardContent = () => {
                                     className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-[#00d9ff] flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-[#00d9ff] flex items-center justify-center text-white font-bold text-sm shadow-lg">
                                             R
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-foreground">Rewards</div>
+                                            <div className="font-medium text-sm text-foreground">Rewards</div>
                                             <div className="text-xs text-muted-foreground">Points</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-bold text-lg text-foreground">{rewardPoints}</div>
+                                        <div className="font-medium text-base text-foreground">{rewardPoints}</div>
                                         <div className="text-xs text-muted-foreground">Tap to convert</div>
                                     </div>
                                 </div>

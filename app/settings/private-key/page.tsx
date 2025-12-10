@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, ShieldAlert, Key, Check } from "lucide-react";
+import { ArrowLeft, Copy, ShieldAlert, Key, Check, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
+import { useBiometric } from "@/hooks/useBiometric";
+import { BiometricPrompt } from "@/components/BiometricPrompt";
 
 const PrivateKeyPage = () => {
     const router = useRouter();
@@ -14,21 +16,45 @@ const PrivateKeyPage = () => {
     const [loading, setLoading] = useState(true);
     const [privateKey, setPrivateKey] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [isUnlocked, setIsUnlocked] = useState(false);
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+    const [biometricError, setBiometricError] = useState<string | null>(null);
+    const { isAvailable, authenticate } = useBiometric(session?.user?.email || "");
 
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/auth");
         } else if (status === "authenticated") {
-            fetchPrivateKey();
+            setLoading(false);
         }
     }, [status]);
 
-    const fetchPrivateKey = async () => {
+    const handleUnlock = async () => {
+        if (!isAvailable) {
+            toast.error("Biometric authentication is not available on this device");
+            return;
+        }
+
+        setBiometricError(null);
+        setShowBiometricPrompt(true);
+
+        const authResult = await authenticate();
+        setShowBiometricPrompt(false);
+
+        if (!authResult.success) {
+            setBiometricError(authResult.error || "Biometric authentication failed");
+            return;
+        }
+
+        // Biometric successful, fetch private key
+        setLoading(true);
         try {
             const res = await fetch('/api/settings/private-key');
             if (res.ok) {
                 const data = await res.json();
                 setPrivateKey(data.privateKey);
+                setIsUnlocked(true);
+                toast.success("Private key unlocked");
             } else {
                 toast.error("Failed to load private key");
             }
@@ -58,6 +84,11 @@ const PrivateKeyPage = () => {
     }
 
     const words = privateKey ? privateKey.split(' ') : [];
+
+    const handleBiometricRetry = async () => {
+        setBiometricError(null);
+        await handleUnlock();
+    };
 
     return (
         <div className="min-h-screen bg-background pb-20">
@@ -100,34 +131,68 @@ const PrivateKeyPage = () => {
                             <span className="text-sm text-muted-foreground">Your Private Key</span>
                         </div>
 
-                        {/* Grid Display */}
-                        <div className="grid grid-cols-3 gap-2 mb-6">
-                            {words.map((word, index) => (
-                                <div key={index} className="bg-background/50 backdrop-blur-sm rounded-lg p-2 text-center border border-white/5">
-                                    <span className="text-xs text-muted-foreground block mb-1">{index + 1}</span>
-                                    <span className="font-medium text-foreground text-sm">{word}</span>
+                        {!isUnlocked ? (
+                            /* Unlock Button */
+                            <div className="text-center py-8">
+                                <Fingerprint className="h-16 w-16 mx-auto mb-4 text-[#00ff9d]" />
+                                <p className="text-muted-foreground mb-6">Unlock with biometric to view your private key</p>
+                                {biometricError && (
+                                    <p className="text-red-500 text-sm mb-4">{biometricError}</p>
+                                )}
+                                <Button
+                                    onClick={handleUnlock}
+                                    disabled={loading}
+                                    className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-12 px-8"
+                                >
+                                    {loading ? "Unlocking..." : (
+                                        <>
+                                            <Fingerprint className="mr-2 h-5 w-5" />
+                                            Unlock with Biometric
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        ) : (
+                            /* Private Key Display */
+                            <>
+                                {/* Grid Display */}
+                                <div className="grid grid-cols-3 gap-2 mb-6">
+                                    {words.map((word, index) => (
+                                        <div key={index} className="bg-background/50 backdrop-blur-sm rounded-lg p-2 text-center border border-white/5">
+                                            <span className="text-xs text-muted-foreground block mb-1">{index + 1}</span>
+                                            <span className="font-medium text-foreground text-sm">{word}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
 
-                        <Button
-                            onClick={handleCopy}
-                            className="w-full bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-12"
-                        >
-                            {copied ? (
-                                <>
-                                    <Check className="mr-2 h-5 w-5" />
-                                    Copied!
-                                </>
-                            ) : (
-                                <>
-                                    <Copy className="mr-2 h-5 w-5" />
-                                    Copy Private Key
-                                </>
-                            )}
-                        </Button>
+                                <Button
+                                    onClick={handleCopy}
+                                    className="w-full bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-12"
+                                >
+                                    {copied ? (
+                                        <>
+                                            <Check className="mr-2 h-5 w-5" />
+                                            Copied!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="mr-2 h-5 w-5" />
+                                            Copy Private Key
+                                        </>
+                                    )}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </Card>
+
+                <BiometricPrompt
+                    isOpen={showBiometricPrompt}
+                    isLoading={loading && showBiometricPrompt}
+                    error={biometricError}
+                    onCancel={() => setShowBiometricPrompt(false)}
+                    onRetry={biometricError ? handleBiometricRetry : undefined}
+                />
             </div>
         </div>
     );

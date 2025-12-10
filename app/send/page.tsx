@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useBiometric } from "@/hooks/useBiometric";
+import { BiometricPrompt } from "@/components/BiometricPrompt";
 
 const SendPage = () => {
     const router = useRouter();
@@ -37,6 +39,9 @@ const SendPage = () => {
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [rewardPointsEarned, setRewardPointsEarned] = useState(0);
     const [maxBalance, setMaxBalance] = useState(0);
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+    const [biometricError, setBiometricError] = useState<string | null>(null);
+    const { isAvailable, authenticate } = useBiometric(session?.user?.email || "");
 
     useEffect(() => {
         // Fetch user's balance
@@ -64,7 +69,7 @@ const SendPage = () => {
     const fee = totalAmount * 0.001; // 0.1% fee
     const finalAmount = totalAmount + fee;
 
-    const handleSend = async () => {
+    const handleSendClick = async () => {
         if (!recipient || !amount) {
             toast.error("Please fill in all required fields");
             return;
@@ -75,6 +80,28 @@ const SendPage = () => {
             return;
         }
 
+        if (!isAvailable) {
+            toast.error("Biometric authentication is not available on this device");
+            return;
+        }
+
+        // Trigger biometric authentication
+        setBiometricError(null);
+        setShowBiometricPrompt(true);
+
+        const authResult = await authenticate();
+        setShowBiometricPrompt(false);
+
+        if (!authResult.success) {
+            setBiometricError(authResult.error || "Biometric authentication failed");
+            return;
+        }
+
+        // Biometric successful, proceed with send
+        await handleSend();
+    };
+
+    const handleSend = async () => {
         setLoading(true);
         try {
             const res = await fetch('/api/wallet/transfer', {
@@ -108,6 +135,11 @@ const SendPage = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleBiometricRetry = async () => {
+        setBiometricError(null);
+        await handleSendClick();
     };
 
     return (
@@ -223,7 +255,7 @@ const SendPage = () => {
 
                         <Button
                             className="w-full bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-12"
-                            onClick={handleSend}
+                            onClick={handleSendClick}
                             disabled={loading || !recipient || !amount}
                         >
                             {loading ? (
@@ -258,6 +290,14 @@ const SendPage = () => {
                         </Button>
                     </DialogContent>
                 </Dialog>
+
+                <BiometricPrompt
+                    isOpen={showBiometricPrompt}
+                    isLoading={showBiometricPrompt}
+                    error={biometricError}
+                    onCancel={() => setShowBiometricPrompt(false)}
+                    onRetry={biometricError ? handleBiometricRetry : undefined}
+                />
             </div>
         </div>
     );

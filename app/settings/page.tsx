@@ -14,12 +14,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useBiometric } from "@/hooks/useBiometric";
+import { BiometricPrompt } from "@/components/BiometricPrompt";
 
 const Settings = () => {
     const router = useRouter();
     const { data: session } = useSession();
 
     const [utxoManagement, setUtxoManagement] = useState(false);
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+    const [biometricError, setBiometricError] = useState<string | null>(null);
+    const [pendingUtxoValue, setPendingUtxoValue] = useState<boolean | null>(null);
+    const { isAvailable, authenticate } = useBiometric(session?.user?.email || "");
 
     const handleSignOut = async () => {
         try {
@@ -28,6 +34,38 @@ const Settings = () => {
         } catch (error) {
             console.error("Error signing out:", error);
             toast.error("Error signing out");
+        }
+    };
+
+    const handleUtxoToggle = async (newValue: boolean) => {
+        if (!isAvailable) {
+            toast.error("Biometric authentication is not available on this device");
+            return;
+        }
+
+        setPendingUtxoValue(newValue);
+        setBiometricError(null);
+        setShowBiometricPrompt(true);
+
+        const authResult = await authenticate();
+        setShowBiometricPrompt(false);
+
+        if (!authResult.success) {
+            setBiometricError(authResult.error || "Biometric authentication failed");
+            setPendingUtxoValue(null);
+            return;
+        }
+
+        // Biometric successful, update UTXO setting
+        setUtxoManagement(newValue);
+        setPendingUtxoValue(null);
+        toast.success(`UTXO Management ${newValue ? 'enabled' : 'disabled'}`);
+    };
+
+    const handleBiometricRetry = async () => {
+        if (pendingUtxoValue !== null) {
+            setBiometricError(null);
+            await handleUtxoToggle(pendingUtxoValue);
         }
     };
 
@@ -113,7 +151,7 @@ const Settings = () => {
                             </div>
                             <Switch
                                 checked={utxoManagement}
-                                onCheckedChange={setUtxoManagement}
+                                onCheckedChange={handleUtxoToggle}
                             />
                         </div>
                     </Card>
@@ -130,6 +168,17 @@ const Settings = () => {
                         </div>
                     </Button>
                 </div>
+
+                <BiometricPrompt
+                    isOpen={showBiometricPrompt}
+                    isLoading={showBiometricPrompt}
+                    error={biometricError}
+                    onCancel={() => {
+                        setShowBiometricPrompt(false);
+                        setPendingUtxoValue(null);
+                    }}
+                    onRetry={biometricError ? handleBiometricRetry : undefined}
+                />
 
                 <BottomNav />
             </div>

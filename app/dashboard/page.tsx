@@ -44,8 +44,8 @@ const DashboardContent = () => {
     const [hasDeposited, setHasDeposited] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState("");
 
-    // Global countdown end date - 6 days 3 hours from 2025-12-10 15:07:49 +01:00
-    const GLOBAL_COUNTDOWN_END = new Date('2025-12-16T18:07:49+01:00');
+    // Global countdown end date - 6 days 5 hours from 2025-12-10 15:07:49 +01:00
+    const GLOBAL_COUNTDOWN_END = new Date('2025-12-16T20:07:49+01:00');
 
     // Success Dialog State
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);

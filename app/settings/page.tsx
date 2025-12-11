@@ -193,20 +193,20 @@ const Settings = () => {
 
                 {/* Sign Out Confirmation Dialog */}
                 <Dialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
-                    <DialogContent className="bg-gradient-to-br from-[#00ff9d]/10 via-[#00d9ff]/10 to-purple-500/10 border-border backdrop-blur-xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                    <DialogContent className="max-w-sm bg-gradient-to-br from-[#00ff9d]/10 via-[#00d9ff]/10 to-purple-500/10 border-border backdrop-blur-xl p-6">
+                        <DialogHeader className="space-y-2">
+                            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
                                 Sign Out?
                             </DialogTitle>
-                            <DialogDescription className="text-muted-foreground text-base">
+                            <DialogDescription className="text-muted-foreground text-sm">
                                 Are you sure you want to sign out of your account?
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex gap-3 mt-4">
+                        <div className="flex gap-2 mt-4">
                             <Button
                                 variant="outline"
                                 onClick={() => setShowSignOutDialog(false)}
-                                className="flex-1 h-12 border-border hover:bg-secondary/20 transition-all duration-300"
+                                className="flex-1 h-10 text-sm border-border hover:bg-secondary/20 transition-all duration-300"
                             >
                                 Stay in App
                             </Button>
@@ -215,7 +215,7 @@ const Settings = () => {
                                     setShowSignOutDialog(false);
                                     handleSignOut();
                                 }}
-                                className="flex-1 h-12 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold shadow-lg hover:shadow-red-500/20 hover:scale-105 transition-all duration-300"
+                                className="flex-1 h-10 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white font-bold shadow-lg hover:shadow-red-500/20 hover:scale-105 transition-all duration-300"
                             >
                                 Log Out
                             </Button>

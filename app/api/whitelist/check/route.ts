@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isEmailWhitelisted } from '@/lib/whitelist';
 import User from '@/lib/models/User';
+import Wallet from '@/lib/models/Wallet';
 import dbConnect from '@/lib/db';
 
 export async function POST(req: NextRequest) {
@@ -16,7 +17,14 @@ export async function POST(req: NextRequest) {
 
         // Check if user already exists
         const user = await User.findOne({ email });
-        const userExists = !!user;
+
+        // User exists only if they have a complete wallet with encrypted seed
+        let userExists = false;
+        if (user) {
+            const wallet = await Wallet.findOne({ userId: user._id });
+            // Only consider user as "existing" if they have a wallet with encrypted seed
+            userExists = !!(wallet && wallet.encryptedSeed);
+        }
 
         return NextResponse.json({ isWhitelisted, userExists });
     } catch (error) {

@@ -26,6 +26,10 @@ const UserSchema = new mongoose.Schema({
         unique: true,
         sparse: true,
     },
+    isWhitelisted: {
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

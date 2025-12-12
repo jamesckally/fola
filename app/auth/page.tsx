@@ -85,14 +85,16 @@ const AuthContent = () => {
                 } else {
                     isWhitelisted = whitelistData.isWhitelisted;
                     userExists = whitelistData.userExists;
+                    const publicRegistrationAvailable = whitelistData.publicRegistrationAvailable;
 
-                    if (!isWhitelisted) {
-                        setError("This email is not whitelisted. Please contact support.");
+                    // Block only if NOT whitelisted AND public registration is NOT available
+                    if (!isWhitelisted && !publicRegistrationAvailable) {
+                        setError("Registration limit reached. Public registration is currently full.");
                         setEmailLoading(false);
                         return;
                     }
 
-                    // If new user, show Turnstile
+                    // If new user (whitelisted OR public registration available), show Turnstile
                     if (!userExists) {
                         setIsNewUser(true);
                         setShowTurnstile(true);
@@ -145,9 +147,13 @@ const AuthContent = () => {
             });
 
             if (result?.error) {
-                setError(result.error === "AccessDenied"
-                    ? "This email is not whitelisted. Please contact support."
-                    : "Sign in failed. Please try again.");
+                if (result.error === "RegistrationLimitReached") {
+                    setError("Registration limit reached. Public registration is currently full.");
+                } else if (result.error === "AccessDenied") {
+                    setError("This email is not whitelisted. Please contact support.");
+                } else {
+                    setError("Sign in failed. Please try again.");
+                }
             } else if (result?.ok) {
                 router.push("/dashboard");
             }
@@ -309,7 +315,7 @@ const AuthContent = () => {
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                 <Input
                                     type="email"
-                                    placeholder="Enter your whitelisted Gmail"
+                                    placeholder="Enter your Gmail address"
                                     value={email}
                                     onChange={(e) => {
                                         setEmail(e.target.value);

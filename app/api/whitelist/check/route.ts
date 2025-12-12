@@ -26,7 +26,18 @@ export async function POST(req: NextRequest) {
             userExists = !!(wallet && wallet.encryptedSeed);
         }
 
-        return NextResponse.json({ isWhitelisted, userExists });
+        // Check if public registration is available for non-whitelisted users
+        let publicRegistrationAvailable = false;
+        if (!isWhitelisted) {
+            const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
+            publicRegistrationAvailable = nonWhitelistedCount < 5000;
+        }
+
+        return NextResponse.json({
+            isWhitelisted,
+            userExists,
+            publicRegistrationAvailable
+        });
     } catch (error) {
         console.error('Whitelist check error:', error);
         return NextResponse.json({ error: 'Failed to check whitelist' }, { status: 500 });

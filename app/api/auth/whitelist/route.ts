@@ -24,10 +24,25 @@ export async function POST(req: NextRequest) {
         const isWhitelisted = await isEmailWhitelisted(email);
 
         if (!isWhitelisted) {
+            // Check if non-whitelisted registrations are still available
+            const User = (await import('@/lib/models/User')).default;
+            const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
+
+            if (nonWhitelistedCount >= 5000) {
+                return NextResponse.json({
+                    error: 'Registration limit reached. Public registration is currently full.',
+                    whitelisted: false,
+                    limitReached: true
+                }, { status: 403 });
+            }
+
+            // Non-whitelisted but under limit
             return NextResponse.json({
-                error: getWhitelistErrorMessage(),
-                whitelisted: false
-            }, { status: 403 });
+                success: true,
+                whitelisted: false,
+                publicRegistrationAvailable: true,
+                message: 'Public registration available',
+            });
         }
 
         return NextResponse.json({

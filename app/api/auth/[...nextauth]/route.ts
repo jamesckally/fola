@@ -83,18 +83,25 @@ export const authOptions: NextAuthOptions = {
 
                     // Check if email is whitelisted
                     const isWhitelisted = await isEmailWhitelisted(email);
-                    if (!isWhitelisted) {
-                        throw new Error("AccessDenied");
-                    }
 
                     // Find or create user
                     let user = await User.findOne({ email });
 
                     if (!user) {
-                        // Create new user if doesn't exist
+                        // New user registration
+                        if (!isWhitelisted) {
+                            // Check non-whitelisted user count
+                            const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
+                            if (nonWhitelistedCount >= 5000) {
+                                throw new Error("RegistrationLimitReached");
+                            }
+                        }
+
+                        // Create new user
                         user = await User.create({
                             email,
                             name: email.split('@')[0],
+                            isWhitelisted,
                         });
                     }
 
@@ -106,7 +113,7 @@ export const authOptions: NextAuthOptions = {
                     };
                 } catch (error: any) {
                     console.error("Email login error:", error);
-                    if (error.message === "AccessDenied") {
+                    if (error.message === "RegistrationLimitReached") {
                         throw error;
                     }
                     return null;
@@ -126,20 +133,37 @@ export const authOptions: NextAuthOptions = {
 
             // Check whitelist for Google OAuth
             const isWhitelisted = await isEmailWhitelisted(user.email);
-            if (!isWhitelisted) {
-                return false; // Deny sign in
-            }
 
-            // Create or update user
-            await User.findOneAndUpdate(
-                { email: user.email },
-                {
+            // Check if user already exists
+            const existingUser = await User.findOne({ email: user.email });
+
+            if (!existingUser) {
+                // New user registration
+                if (!isWhitelisted) {
+                    // Check non-whitelisted user count
+                    const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
+                    if (nonWhitelistedCount >= 5000) {
+                        return false; // Deny registration - limit reached
+                    }
+                }
+
+                // Create new user
+                await User.create({
                     email: user.email,
                     name: user.name,
                     googleId: user.id,
-                },
-                { upsert: true, new: true }
-            );
+                    isWhitelisted,
+                });
+            } else {
+                // Update existing user
+                await User.findOneAndUpdate(
+                    { email: user.email },
+                    {
+                        name: user.name,
+                        googleId: user.id,
+                    }
+                );
+            }
 
             return true;
         },

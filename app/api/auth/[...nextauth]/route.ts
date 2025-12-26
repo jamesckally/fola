@@ -7,6 +7,7 @@ import { isEmailWhitelisted } from '@/lib/whitelist';
 import { deriveCantonPartyId } from '@/lib/canton';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import { generateDepositAddress } from '@/lib/services/hdWallet';
 import Wallet from '@/lib/models/Wallet';
 
 export const authOptions: NextAuthOptions = {
@@ -92,7 +93,7 @@ export const authOptions: NextAuthOptions = {
                         if (!isWhitelisted) {
                             // Check non-whitelisted user count
                             const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
-                            if (nonWhitelistedCount >= 5000) {
+                            if (nonWhitelistedCount >= 6000) {
                                 throw new Error("RegistrationLimitReached");
                             }
                         }
@@ -103,6 +104,28 @@ export const authOptions: NextAuthOptions = {
                             name: email.split('@')[0],
                             isWhitelisted,
                         });
+
+                        // Generate unique deposit address
+                        try {
+                            const depositInfo = generateDepositAddress(user._id.toString());
+                            user.depositAddress = depositInfo.address;
+                            user.depositAddressIndex = depositInfo.index;
+                            await user.save();
+                            console.log(`🔑 Generated deposit address for ${email}: ${depositInfo.address}`);
+                        } catch (error) {
+                            console.error('Failed to generate deposit address:', error);
+                            // Don't fail user creation if deposit address generation fails
+                        }
+
+                        // Check for referral code in credentials (passed from frontend)
+                        if (credentials.referralCode) {
+                            const referrer = await User.findOne({ referralCode: credentials.referralCode });
+                            if (referrer) {
+                                user.referredBy = referrer._id;
+                                await user.save();
+                                console.log(`✅ User ${email} referred by ${referrer.email}`);
+                            }
+                        }
                     }
 
                     return {
@@ -142,7 +165,7 @@ export const authOptions: NextAuthOptions = {
                 if (!isWhitelisted) {
                     // Check non-whitelisted user count
                     const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
-                    if (nonWhitelistedCount >= 5000) {
+                    if (nonWhitelistedCount >= 6000) {
                         return false; // Deny registration - limit reached
                     }
                 }
@@ -172,21 +195,33 @@ export const authOptions: NextAuthOptions = {
                 token.accessToken = account.access_token;
             }
 
-            // If user is present (sign in), fetch wallet address
+            // If user is present (sign in), fetch user data and wallet address
             if (user) {
                 await dbConnect();
                 const dbUser = await User.findOne({ email: user.email });
-                if (dbUser?.walletAddress) {
-                    token.walletAddress = dbUser.walletAddress;
+                if (dbUser) {
+                    token.userId = dbUser._id.toString();
+                    if (dbUser.walletAddress) {
+                        token.walletAddress = dbUser.walletAddress;
+                    }
+                    if (dbUser.referralCode) {
+                        token.referralCode = dbUser.referralCode;
+                    }
                 }
             }
-            // If walletAddress is missing but we have email (subsequent requests),
+            // If userId or walletAddress is missing but we have email (subsequent requests),
             // check DB again in case wallet was just created
-            else if (!token.walletAddress && token.email) {
+            else if ((!token.userId || !token.walletAddress || !token.referralCode) && token.email) {
                 await dbConnect();
                 const dbUser = await User.findOne({ email: token.email });
-                if (dbUser?.walletAddress) {
-                    token.walletAddress = dbUser.walletAddress;
+                if (dbUser) {
+                    token.userId = dbUser._id.toString();
+                    if (dbUser.walletAddress) {
+                        token.walletAddress = dbUser.walletAddress;
+                    }
+                    if (dbUser.referralCode) {
+                        token.referralCode = dbUser.referralCode;
+                    }
                 }
             }
 
@@ -195,7 +230,11 @@ export const authOptions: NextAuthOptions = {
         async session({ session, token }) {
             session.accessToken = token.accessToken;
             // @ts-ignore
+            session.user.id = token.userId;
+            // @ts-ignore
             session.user.walletAddress = token.walletAddress;
+            // @ts-ignore
+            session.user.referralCode = token.referralCode;
             return session;
         },
     },

@@ -1,0 +1,12 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/monitor-deposits?network=polygon",
+            "schedule": "*/2 * * * *"
+        },
+        {
+            "path": "/api/cron/monitor-deposits?network=bsc",
+            "schedule": "*/2 * * * *"
+        }
+    ]
+}

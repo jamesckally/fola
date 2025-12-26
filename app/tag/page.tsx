@@ -52,10 +52,14 @@ const TagPage = () => {
 
         setLoading(true);
         try {
-            const response = await fetch('/api/tags/purchase', {
+            const response = await fetch('/api/shop/buy-tag', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tagName })
+                body: JSON.stringify({
+                    // @ts-ignore
+                    userId: session?.user?.id,
+                    tagName
+                })
             });
 
             const data = await response.json();
@@ -133,7 +137,7 @@ const TagPage = () => {
                         <div className="space-y-2">
                             <h3 className="font-semibold text-foreground">Tag Purchase</h3>
                             <p className="text-sm text-muted-foreground">
-                                Cost: <span className="text-primary font-semibold">30 CC</span>
+                                Cost: <span className="text-primary font-semibold">$2.50 USDT</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
                                 Your tag will be prefixed with "Swapa_"
@@ -168,7 +172,7 @@ const TagPage = () => {
                                 Purchasing...
                             </>
                         ) : (
-                            "Purchase Tag (30 CC)"
+                            "Purchase Tag ($2.50 USDT)"
                         )}
                     </Button>
                 </form>

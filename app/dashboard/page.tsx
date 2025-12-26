@@ -32,6 +32,7 @@ const DashboardContent = () => {
     const [loading, setLoading] = useState(true);
     const [internalBalance, setInternalBalance] = useState(0);
     const [rewardPoints, setRewardPoints] = useState(0);
+    const [usdtBalance, setUsdtBalance] = useState(0);
     const [userTag, setUserTag] = useState<string | null>(null);
     const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'not-synced'>('syncing');
     const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -43,6 +44,8 @@ const DashboardContent = () => {
     const [balanceHidden, setBalanceHidden] = useState(false);
     const [hasDeposited, setHasDeposited] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState("");
+    const [usdtPrice, setUsdtPrice] = useState(1.0);
+    const [usdtChange24h, setUsdtChange24h] = useState(0);
 
     // Global countdown end date - 6 days 5 hours from 2025-12-10 15:07:49 +01:00
     const GLOBAL_COUNTDOWN_END = new Date('2025-12-16T20:07:49+01:00');
@@ -96,6 +99,7 @@ const DashboardContent = () => {
                 const data = await response.json();
                 setInternalBalance(data.internalBalance || 0);
                 setRewardPoints(data.rewardPoints || 0);
+                setUsdtBalance(data.usdtBalance || 0);
             } else {
                 throw new Error('Failed to fetch balance');
             }
@@ -113,6 +117,29 @@ const DashboardContent = () => {
             setLoading(false);
         }
     };
+
+    // Fetch USDT market data
+    const fetchUSDTMarketData = async () => {
+        try {
+            const response = await fetch(
+                'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=usd&include_24hr_change=true'
+            );
+            if (response.ok) {
+                const data = await response.json();
+                setUsdtPrice(data.tether.usd);
+                setUsdtChange24h(data.tether.usd_24h_change || 0);
+            }
+        } catch (error) {
+            console.error("Error fetching USDT market data:", error);
+        }
+    };
+
+    // Fetch market data on mount and every 60 seconds
+    useEffect(() => {
+        fetchUSDTMarketData();
+        const interval = setInterval(fetchUSDTMarketData, 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, []);
 
     // Auto-retry effect
     useEffect(() => {
@@ -194,7 +221,7 @@ const DashboardContent = () => {
 
     // Mock exchange rate
     const CC_RATE = 0.077;
-    const totalBalance = internalBalance * CC_RATE;
+    const totalBalance = usdtBalance; // Only show USDT in total balance
 
     if (status === "loading" || loading) {
         return <Loading />;
@@ -311,33 +338,21 @@ const DashboardContent = () => {
                                     </h1>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[#00ff9d] text-sm">+0.00%</span>
+                                    <span className={`text-sm ${usdtChange24h >= 0 ? 'text-[#00ff9d]' : 'text-red-500'
+                                        }`}>
+                                        {usdtChange24h >= 0 ? '+' : ''}{usdtChange24h.toFixed(2)}%
+                                    </span>
                                     <span className="text-gray-400 text-sm">24h</span>
                                 </div>
                             </div>
                             <div className="text-right">
-                                {userTag && timeRemaining && timeRemaining !== "Expired" ? (
-                                    <div className="bg-background/50 backdrop-blur-sm rounded-lg px-2 py-1 border border-[#00ff9d]/30">
-                                        <div className="text-[10px] text-muted-foreground mb-0.5">Rewards Ending In</div>
-                                        <div className="text-xs font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
-                                            {timeRemaining}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <Button
-                                        onClick={() => hasDeposited ? router.push('/tag') : setShowDepositDialog(true)}
-                                        className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl px-6 h-10"
-                                    >
-                                        {hasDeposited ? (
-                                            <>
-                                                <Tag className="mr-2 h-4 w-4" />
-                                                Get Tag
-                                            </>
-                                        ) : (
-                                            "Fund"
-                                        )}
-                                    </Button>
-                                )}
+                                <Button
+                                    onClick={() => router.push('/tag')}
+                                    className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl px-6 h-10"
+                                >
+                                    <Tag className="mr-2 h-4 w-4" />
+                                    Get Tag
+                                </Button>
                             </div>
                         </div>
                     </Card>
@@ -374,6 +389,31 @@ const DashboardContent = () => {
                             <h2 className="text-lg font-bold mb-4 bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">My Tokens</h2>
 
                             <div className="space-y-1">
+                                {/* USDT */}
+                                <div
+                                    onClick={() => router.push('/usdt')}
+                                    className="bg-background/50 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-background/70 transition-all duration-300 hover:scale-[1.02]"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#26a17b] to-[#50af95] flex items-center justify-center shadow-lg">
+                                            <span className="text-white font-bold text-xs">₮</span>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-sm text-foreground">USDT</div>
+                                            <div className="text-xs text-muted-foreground">Tether</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-medium text-base text-foreground">
+                                            {usdtBalance.toFixed(2)}
+                                        </div>
+                                        <div className={`text-xs font-normal ${usdtChange24h >= 0 ? 'text-[#00ff9d]' : 'text-red-500'
+                                            }`}>
+                                            {usdtChange24h >= 0 ? '+' : ''}{usdtChange24h.toFixed(2)}% ${usdtPrice.toFixed(4)}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Canton Coin */}
                                 <div
                                     onClick={() => router.push('/canton')}
@@ -488,16 +528,7 @@ const DashboardContent = () => {
                     </Card>
                 </div>
 
-                {/* Deposit Dialog Trigger */}
-                <div className="fixed bottom-24 right-4">
-                    <Button
-                        onClick={() => setShowDepositDialog(true)}
-                        size="icon"
-                        className="rounded-full h-12 w-12 bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300"
-                    >
-                        <Plus className="h-6 w-6" />
-                    </Button>
-                </div>
+
 
                 {/* Deposit Dialog */}
                 <Dialog open={showDepositDialog} onOpenChange={setShowDepositDialog}>

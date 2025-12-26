@@ -1,0 +1,140 @@
+import SwapaTag from '../models/SwapaTag';
+import USDTTransaction from '../models/USDTTransaction';
+import { WalletService } from './wallet';
+import { ReferralService } from './referral';
+import { bscTreasury } from './usdt-treasury';
+import mongoose from 'mongoose';
+
+const TAG_PRICE = 2.50; // $2.50 USDT
+
+/**
+ * Swapa Tag Purchase Service
+ */
+export class SwapaService {
+    /**
+     * Purchase a Swapa Tag
+     */
+    static async purchaseTag(
+        userId: string,
+        tagName: string
+    ): Promise<{ success: boolean; tag?: any; error?: string }> {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            // Validate tag name
+            if (!tagName || tagName.length < 3 || tagName.length > 20) {
+                await session.abortTransaction();
+                return { success: false, error: 'Tag name must be between 3 and 20 characters' };
+            }
+
+            // Check if tag name is already taken
+            const existingTag = await SwapaTag.findOne({ name: tagName }).session(session);
+            if (existingTag) {
+                await session.abortTransaction();
+                return { success: false, error: 'Tag name already taken' };
+            }
+
+            // Check USDT balance
+            const balanceResult = await USDTTransaction.aggregate([
+                { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+                {
+                    $group: {
+                        _id: null,
+                        balance: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$type', 'credit'] },
+                                    '$amount',
+                                    { $multiply: ['$amount', -1] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]).session(session);
+
+            const currentBalance = balanceResult[0]?.balance || 0;
+
+            if (currentBalance < TAG_PRICE) {
+                await session.abortTransaction();
+                return { success: false, error: `Insufficient USDT balance. Need $${TAG_PRICE}, have $${currentBalance.toFixed(2)}` };
+            }
+
+            // Deduct USDT
+            await USDTTransaction.create([{
+                userId: new mongoose.Types.ObjectId(userId),
+                type: 'debit',
+                amount: TAG_PRICE,
+                balanceBefore: currentBalance,
+                balanceAfter: currentBalance - TAG_PRICE,
+                status: 'COMPLETED',
+                metadata: {
+                    type: 'TAG_PURCHASE',
+                    tagName
+                }
+            }], { session });
+
+            // Create tag
+            const [tag] = await SwapaTag.create([{
+                name: tagName,
+                owner: userId,
+                price: TAG_PRICE,
+            }], { session });
+
+            // Trigger referral bonus if applicable
+            try {
+                await ReferralService.triggerReferralBonus(userId);
+            } catch (referralError) {
+                // Log but don't fail the purchase
+                console.error('Referral bonus error:', referralError);
+            }
+
+            await session.commitTransaction();
+
+            // Send to treasury (async, outside transaction)
+            this.sendToTreasury(TAG_PRICE).catch(error => {
+                console.error('Treasury transfer error:', error);
+                // Log for manual reconciliation
+            });
+
+            return { success: true, tag };
+        } catch (error: any) {
+            await session.abortTransaction();
+            return { success: false, error: error.message || 'Purchase failed' };
+        } finally {
+            session.endSession();
+        }
+    }
+
+    /**
+     * Send funds to treasury wallet
+     */
+    private static async sendToTreasury(amount: number): Promise<void> {
+        try {
+            const treasuryAddress = bscTreasury.getTreasuryAddress();
+            // In production, you might want to batch these or use a different mechanism
+            console.log(`Treasury transfer: ${amount} USDT to ${treasuryAddress}`);
+            // Actual transfer would happen here if needed
+            // await bscTreasury.sendUSDT(treasuryAddress, amount);
+        } catch (error) {
+            console.error('Treasury transfer failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get user's tags
+     */
+    static async getUserTags(userId: string): Promise<any[]> {
+        return await SwapaTag.find({ owner: userId }).sort({ purchasedAt: -1 });
+    }
+
+    /**
+     * Check if tag name is available
+     */
+    static async isTagAvailable(tagName: string): Promise<boolean> {
+        const existing = await SwapaTag.findOne({ name: tagName });
+        return !existing;
+    }
+}

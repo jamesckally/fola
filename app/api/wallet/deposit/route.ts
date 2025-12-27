@@ -62,16 +62,22 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Get user's deposit address
-        if (!user.depositAddress) {
+        // Get treasury address for new deposit system
+        const treasuryAddress = process.env.TREASURY_ADDRESS;
+        if (!treasuryAddress) {
             return NextResponse.json(
-                { error: 'No deposit address found. Please generate one first.' },
-                { status: 400 }
+                { error: 'Treasury address not configured' },
+                { status: 500 }
             );
         }
 
+        // Support both treasury deposits (new) and HD wallet deposits (legacy)
+        // New users deposit to treasury, existing users can still use HD wallets
+        const expectedAddress = user.depositAddress || treasuryAddress;
+        const depositType = user.depositAddress ? 'HD Wallet' : 'Treasury';
+
         console.log(`🔍 Verifying deposit for user ${user.email}:`, txHash);
-        console.log(`📍 Expected deposit address: ${user.depositAddress}`);
+        console.log(`📍 Expected ${depositType} address: ${expectedAddress}`);
 
         // Verify transaction on blockchain
         let verificationResult;
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
             verificationResult = await verifyDeposit(
                 txHash,
                 network as NetworkType,
-                user.depositAddress, // Check user's deposit address, not treasury!
+                expectedAddress,
                 MIN_DEPOSIT
             );
         } catch (error: any) {

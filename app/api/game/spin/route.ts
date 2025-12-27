@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/db';
+import mongoose from 'mongoose';
 import Ticket from '@/lib/models/Ticket';
 import PrizePool from '@/lib/models/PrizePool';
 import SpinTransaction from '@/lib/models/SpinTransaction';

@@ -1,5 +1,6 @@
 import SwapaTag from '../models/SwapaTag';
 import USDTTransaction from '../models/USDTTransaction';
+import User from '../models/User';
 import { WalletService } from './wallet';
 import { ReferralService } from './referral';
 import { bscTreasury } from './usdt-treasury';
@@ -92,11 +93,17 @@ export class SwapaService {
 
             await session.commitTransaction();
 
-            // Send to treasury (async, outside transaction)
-            this.sendToTreasury(TAG_PRICE).catch(error => {
-                console.error('Treasury transfer error:', error);
-                // Log for manual reconciliation
-            });
+            // Get user's deposit address index for treasury sweep
+            const user = await User.findById(userId);
+            if (user?.depositAddressIndex !== undefined) {
+                // Send to treasury (async, outside transaction)
+                this.sendToTreasury(TAG_PRICE, userId, user.depositAddressIndex).catch(error => {
+                    console.error('Treasury transfer error:', error);
+                    // Log for manual reconciliation
+                });
+            } else {
+                console.warn('User has no deposit address index, skipping treasury transfer');
+            }
 
             return { success: true, tag };
         } catch (error: any) {
@@ -109,17 +116,22 @@ export class SwapaService {
 
     /**
      * Send funds to treasury wallet
+     * Sweeps USDT from user's HD wallet address to treasury
      */
-    private static async sendToTreasury(amount: number): Promise<void> {
+    private static async sendToTreasury(amount: number, userId: string, depositAddressIndex: number): Promise<void> {
         try {
-            const treasuryAddress = bscTreasury.getTreasuryAddress();
-            // In production, you might want to batch these or use a different mechanism
-            console.log(`Treasury transfer: ${amount} USDT to ${treasuryAddress}`);
-            // Actual transfer would happen here if needed
-            // await bscTreasury.sendUSDT(treasuryAddress, amount);
+            const { sweepUSDTToTreasury } = await import('./hdWalletSweep');
+
+            // Sweep USDT from user's HD wallet to treasury
+            // Default to Polygon network (can be made configurable)
+            const txHash = await sweepUSDTToTreasury(depositAddressIndex, amount, 'polygon');
+
+            console.log(`✅ Treasury transfer successful: ${amount} USDT`);
+            console.log(`TX Hash: ${txHash}`);
         } catch (error) {
             console.error('Treasury transfer failed:', error);
-            throw error;
+            // Don't throw - log for manual reconciliation
+            // The purchase already succeeded, this is just treasury accounting
         }
     }
 

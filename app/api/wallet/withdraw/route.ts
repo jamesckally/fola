@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/db';
+import mongoose from 'mongoose';
 import User from '@/lib/models/User';
 import USDTTransaction from '@/lib/models/USDTTransaction';
 import WithdrawalTransaction from '@/lib/models/WithdrawalTransaction';
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
         const userAgent = req.headers.get('user-agent') || 'unknown';
 
         // Start transaction
-        const session_db = await dbConnect().then(conn => conn.startSession());
+        const session_db = await mongoose.startSession();
         session_db.startTransaction();
 
         try {

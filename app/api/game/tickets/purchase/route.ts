@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
         // Calculate tickets to grant
         const ticketsToGrant = Math.floor(amount * TICKETS_PER_DOLLAR);
 
+        // Get user's existing tickets
+        let userTickets = await Ticket.findOne({ userId });
+
         // Start database transaction
         const session_db = await mongoose.startSession();
         session_db.startTransaction();

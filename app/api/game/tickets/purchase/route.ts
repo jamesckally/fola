@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
                 paidTickets: userTickets.paidTickets,
                 totalTickets: userTickets.getTotalTickets(),
                 newUSDTBalance: currentBalance - amount,
-                message: `🎟️ Purchased ${ticketsToGrant} tickets for $${amount}${bonusMessage} `
+                message: `🎟️ Purchased ${ticketsToGrant} tickets for $${amount}`
             });
         } catch (error) {
             await session_db.abortTransaction();

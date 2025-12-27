@@ -62,16 +62,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Get treasury address
-        const treasuryAddress = process.env.TREASURY_ADDRESS;
-        if (!treasuryAddress) {
+        // Get user's deposit address
+        if (!user.depositAddress) {
             return NextResponse.json(
-                { error: 'Treasury address not configured' },
-                { status: 500 }
+                { error: 'No deposit address found. Please generate one first.' },
+                { status: 400 }
             );
         }
 
         console.log(`🔍 Verifying deposit for user ${user.email}:`, txHash);
+        console.log(`📍 Expected deposit address: ${user.depositAddress}`);
 
         // Verify transaction on blockchain
         let verificationResult;
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             verificationResult = await verifyDeposit(
                 txHash,
                 network as NetworkType,
-                treasuryAddress,
+                user.depositAddress, // Check user's deposit address, not treasury!
                 MIN_DEPOSIT
             );
         } catch (error: any) {

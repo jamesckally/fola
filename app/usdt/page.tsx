@@ -26,6 +26,12 @@ const USDTPage = () => {
     const [depositAddress, setDepositAddress] = useState('');
     const [addressCopied, setAddressCopied] = useState(false);
 
+    // Verify deposit state
+    const [showVerifyDialog, setShowVerifyDialog] = useState(false);
+    const [verifyTxHash, setVerifyTxHash] = useState('');
+    const [verifyNetwork, setVerifyNetwork] = useState<Network>('polygon');
+    const [verifying, setVerifying] = useState(false);
+
     // Withdrawal state
     const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
     const [withdrawNetwork, setWithdrawNetwork] = useState<Network>('polygon');
@@ -94,6 +100,41 @@ const USDTPage = () => {
         setAddressCopied(true);
         toast.success("Address copied!");
         setTimeout(() => setAddressCopied(false), 2000);
+    };
+
+    const handleVerifyDeposit = async () => {
+        if (!verifyTxHash) {
+            toast.error("Please enter transaction hash");
+            return;
+        }
+
+        setVerifying(true);
+        try {
+            const response = await fetch('/api/wallet/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    txHash: verifyTxHash,
+                    network: verifyNetwork
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success(`✅ Deposit verified! +$${data.deposit.amount} USDT`);
+                setBalance(data.newBalance);
+                setShowVerifyDialog(false);
+                setVerifyTxHash('');
+            } else {
+                toast.error(data.error || 'Verification failed');
+            }
+        } catch (error) {
+            console.error("Verify error:", error);
+            toast.error("Failed to verify deposit");
+        } finally {
+            setVerifying(false);
+        }
     };
 
     const handleWithdraw = async () => {
@@ -212,20 +253,27 @@ const USDTPage = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <Button
                                 onClick={() => setShowWithdrawDialog(true)}
-                                className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-10 text-sm"
+                                className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-10 text-xs"
                             >
-                                <ArrowUp className="mr-1.5 h-4 w-4" />
+                                <ArrowUp className="mr-1 h-3 w-3" />
                                 Withdraw
                             </Button>
                             <Button
                                 onClick={() => setShowDepositDialog(true)}
-                                className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-10 text-sm"
+                                className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold shadow-lg hover:shadow-[#00ff9d]/20 hover:scale-105 transition-all duration-300 rounded-xl h-10 text-xs"
                             >
-                                <ArrowDown className="mr-1.5 h-4 w-4" />
+                                <ArrowDown className="mr-1 h-3 w-3" />
                                 Deposit
+                            </Button>
+                            <Button
+                                onClick={() => setShowVerifyDialog(true)}
+                                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold shadow-lg hover:shadow-purple-500/20 hover:scale-105 transition-all duration-300 rounded-xl h-10 text-xs"
+                            >
+                                <Check className="mr-1 h-3 w-3" />
+                                Verify
                             </Button>
                         </div>
                     </div>
@@ -371,6 +419,76 @@ const USDTPage = () => {
                                 </>
                             ) : (
                                 'Withdraw'
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Verify Deposit Dialog */}
+            <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
+                <DialogContent className="bg-gradient-to-br from-[#0a0e27] via-[#1a1f3a] to-[#0f1629] border border-purple-500/30">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            Verify Deposit
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                            <p className="text-sm text-white/80">
+                                📝 After sending USDT to your deposit address, paste the transaction hash here to verify and credit your balance instantly.
+                            </p>
+                        </div>
+
+                        <div>
+                            <Label className="text-white/90">Network</Label>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                <Button
+                                    type="button"
+                                    variant={verifyNetwork === 'polygon' ? 'default' : 'outline'}
+                                    onClick={() => setVerifyNetwork('polygon')}
+                                    className={verifyNetwork === 'polygon' ? 'bg-purple-500 hover:bg-purple-600' : ''}
+                                >
+                                    Polygon
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={verifyNetwork === 'bsc' ? 'default' : 'outline'}
+                                    onClick={() => setVerifyNetwork('bsc')}
+                                    className={verifyNetwork === 'bsc' ? 'bg-purple-500 hover:bg-purple-600' : ''}
+                                >
+                                    BSC
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label className="text-white/90">Transaction Hash</Label>
+                            <Input
+                                type="text"
+                                value={verifyTxHash}
+                                onChange={(e) => setVerifyTxHash(e.target.value)}
+                                placeholder="0x..."
+                                className="mt-2 bg-white/5 border-white/20 text-white"
+                            />
+                            <p className="text-xs text-white/50 mt-1">
+                                Find this in your wallet after sending USDT
+                            </p>
+                        </div>
+
+                        <Button
+                            onClick={handleVerifyDeposit}
+                            disabled={verifying || !verifyTxHash}
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold"
+                        >
+                            {verifying ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Verifying...
+                                </>
+                            ) : (
+                                'Verify Deposit'
                             )}
                         </Button>
                     </div>

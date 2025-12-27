@@ -1,4 +1,4 @@
-```typescript
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         // Validate amount
         if (!amount || amount < TICKET_PRICE) {
             return NextResponse.json(
-                { error: `Minimum purchase is $${ TICKET_PRICE } ` },
+                { error: `Minimum purchase is $${TICKET_PRICE} ` },
                 { status: 400 }
             );
         }
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
                 paidTickets: userTickets.paidTickets,
                 totalTickets: userTickets.getTotalTickets(),
                 newUSDTBalance: currentBalance - amount,
-                message: `🎟️ Purchased ${ ticketsToGrant } tickets for $${ amount }${ bonusMessage } `
+                message: `🎟️ Purchased ${ticketsToGrant} tickets for $${amount}${bonusMessage} `
             });
         } catch (error) {
             await session_db.abortTransaction();

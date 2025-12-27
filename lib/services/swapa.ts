@@ -64,7 +64,7 @@ export class SwapaService {
             // Deduct USDT
             await USDTTransaction.create([{
                 userId: new mongoose.Types.ObjectId(userId),
-                type: 'debit',
+                type: 'TAG_PURCHASE',
                 amount: TAG_PRICE,
                 balanceBefore: currentBalance,
                 balanceAfter: currentBalance - TAG_PRICE,

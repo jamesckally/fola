@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         const ticketType = userTickets.paidTickets > 0 ? 'paid' : 'free';
 
         // Start database transaction
-        const session_db = await dbConnect().then(conn => conn.startSession());
+        const session_db = await mongoose.startSession();
         session_db.startTransaction();
 
         try {

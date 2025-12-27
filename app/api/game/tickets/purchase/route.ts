@@ -79,20 +79,6 @@ export async function POST(request: NextRequest) {
         // Calculate tickets to grant
         const ticketsToGrant = Math.floor(amount * TICKETS_PER_DOLLAR);
 
-        // Check if user can get bonus free ticket (once per day)
-        let bonusFreeTicket = 0;
-        let userTickets = await Ticket.findOne({ userId });
-
-        if (userTickets) {
-            const canGetBonus = userTickets.canClaimFreeTicket();
-            if (canGetBonus) {
-                bonusFreeTicket = 1;
-            }
-        } else {
-            // First time purchasing, give bonus
-            bonusFreeTicket = 1;
-        }
-
         // Start database transaction
         const session_db = await mongoose.startSession();
         session_db.startTransaction();
@@ -107,8 +93,7 @@ export async function POST(request: NextRequest) {
                 balanceAfter: currentBalance - amount,
                 status: 'COMPLETED',
                 metadata: {
-                    ticketsPurchased: ticketsToGrant,
-                    bonusFreeTicket: bonusFreeTicket
+                    ticketsPurchased: ticketsToGrant
                 }
             }], { session: session_db });
 
@@ -124,32 +109,27 @@ export async function POST(request: NextRequest) {
             if (!userTickets) {
                 userTickets = await Ticket.create([{
                     userId,
-                    freeTickets: bonusFreeTicket,
+                    freeTickets: 0,
                     paidTickets: ticketsToGrant,
                     totalTicketsPurchased: ticketsToGrant,
                     totalSpent: amount,
-                    lastFreeTicketClaim: bonusFreeTicket > 0 ? new Date() : null
+                    lastFreeTicketClaim: null
                 }], { session: session_db });
                 userTickets = userTickets[0];
             } else {
                 userTickets.paidTickets += ticketsToGrant;
-                userTickets.freeTickets += bonusFreeTicket;
                 userTickets.totalTicketsPurchased += ticketsToGrant;
                 userTickets.totalSpent += amount;
-                if (bonusFreeTicket > 0) {
-                    userTickets.lastFreeTicketClaim = new Date();
-                }
                 await userTickets.save({ session: session_db });
             }
 
             await session_db.commitTransaction();
 
-            const bonusMessage = bonusFreeTicket > 0 ? ' + 1 bonus free ticket!' : '';
+
 
             return NextResponse.json({
                 success: true,
                 ticketsPurchased: ticketsToGrant,
-                bonusFreeTicket,
                 amountSpent: amount,
                 freeTickets: userTickets.freeTickets,
                 paidTickets: userTickets.paidTickets,

@@ -36,6 +36,11 @@ const WalletSchema = new mongoose.Schema({
         default: 150,
         min: 0
     },
+    usdtBalance: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     fakeAddress: {
         type: String,
         unique: true,

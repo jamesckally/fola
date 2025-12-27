@@ -9,20 +9,30 @@ const DepositSchema = new mongoose.Schema({
     txHash: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        lowercase: true
+    },
+    network: {
+        type: String,
+        enum: ['polygon', 'bsc'],
+        required: true
+    },
+    fromAddress: {
+        type: String,
+        required: true
     },
     amount: {
         type: Number,
         required: true
     },
-    internalCredited: {
+    blockNumber: {
         type: Number,
-        required: true
+        required: false
     },
     status: {
         type: String,
-        enum: ['PENDING', 'VERIFIED', 'FAILED'],
-        default: 'PENDING'
+        enum: ['pending', 'verified', 'failed'],
+        default: 'pending'
     },
     verifiedAt: Date,
     createdAt: {

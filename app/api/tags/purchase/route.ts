@@ -6,6 +6,7 @@ import User from '@/lib/models/User';
 import UserTag from '@/lib/models/UserTag';
 import Wallet from '@/lib/models/Wallet';
 import Transaction from '@/lib/models/Transaction';
+import USDTTransaction from '@/lib/models/USDTTransaction';
 
 const TAG_PURCHASE_COST = 30; // 30 Internal CC
 
@@ -85,6 +86,38 @@ export async function POST(req: NextRequest) {
             status: 'COMPLETED',
             description: `Purchased tag: @${tagName.toLowerCase()}`
         });
+
+        // REFERRAL REWARD: Award $1 USDT to referrer if applicable
+        if (user.referredBy && !user.referralRewardClaimed) {
+            try {
+                // Award $1 USDT to the referrer
+                await USDTTransaction.create({
+                    userId: user.referredBy,
+                    type: 'credit',
+                    amount: 1,
+                    status: 'COMPLETED',
+                    metadata: {
+                        source: 'referral_bonus',
+                        referredUserId: user._id.toString(),
+                        referredUserTag: tagName.toLowerCase()
+                    }
+                });
+
+                // Mark referral reward as claimed
+                user.referralRewardClaimed = true;
+                await user.save();
+
+                // Increment referrer's totalReferrals count
+                await User.findByIdAndUpdate(user.referredBy, {
+                    $inc: { totalReferrals: 1 }
+                });
+
+                console.log(`✅ Referral bonus: $1 USDT awarded to referrer ${user.referredBy}`);
+            } catch (referralError) {
+                console.error('Error awarding referral bonus:', referralError);
+                // Don't fail the tag purchase if referral bonus fails
+            }
+        }
 
         return NextResponse.json({
             success: true,

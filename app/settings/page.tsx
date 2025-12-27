@@ -11,10 +11,12 @@ import {
     Key,
     ChevronRight,
     ArrowLeft,
-    Copy
+    Copy,
+    Users,
+    Share2
 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBiometric } from "@/hooks/useBiometric";
 import { BiometricPrompt } from "@/components/BiometricPrompt";
 import {
@@ -86,6 +88,54 @@ const Settings = () => {
         ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
         : walletAddress;
 
+    // Get referral code and generate referral link
+    // @ts-ignore
+    const [referralCode, setReferralCode] = useState<string>(session?.user?.referralCode || "");
+    const [hasTag, setHasTag] = useState<boolean>(false);
+    const referralLink = referralCode ? `${window.location.origin}/auth?ref=${referralCode}` : "";
+
+    // Check if user has Swapa Tag
+    useEffect(() => {
+        const checkTag = async () => {
+            try {
+                const response = await fetch('/api/user/check-tag');
+                if (response.ok) {
+                    const data = await response.json();
+                    setHasTag(data.hasTag);
+                }
+            } catch (error) {
+                console.error('Error checking tag:', error);
+            }
+        };
+        checkTag();
+    }, []);
+
+    // Fetch/generate referral code on mount
+    useEffect(() => {
+        const fetchReferralCode = async () => {
+            try {
+                const response = await fetch('/api/user/generate-referral-code');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.referralCode) {
+                        setReferralCode(data.referralCode);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching referral code:', error);
+            }
+        };
+
+        if (!referralCode) {
+            fetchReferralCode();
+        }
+    }, [referralCode]);
+
+    const copyReferralLink = () => {
+        navigator.clipboard.writeText(referralLink);
+        toast.success("Referral link copied to clipboard!");
+    };
+
     const menuItems = [
         {
             icon: User,
@@ -141,6 +191,55 @@ const Settings = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Referral Section - Only show if user has Swapa Tag */}
+                        {referralCode && hasTag && (
+                            <>
+                                {/* Referral Code */}
+                                <div className="p-4 border-b border-border/50">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <Users className="h-5 w-5 text-[#00ff9d]" />
+                                            <div>
+                                                <p className="font-semibold text-foreground">Referral Code</p>
+                                                <p className="text-xs text-muted-foreground">Share with friends</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(referralCode);
+                                                toast.success("Referral code copied!");
+                                            }}
+                                            className="px-3 py-1.5 bg-gradient-to-r from-[#00ff9d]/10 to-[#00d9ff]/10 hover:from-[#00ff9d]/20 hover:to-[#00d9ff]/20 rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <span className="text-sm font-bold bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] bg-clip-text text-transparent">
+                                                {referralCode}
+                                            </span>
+                                            <Copy className="h-3.5 w-3.5 text-[#00ff9d]" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Referral Link */}
+                                <div className="p-4 border-b border-border/50">
+                                    <div className="bg-secondary/20 rounded-lg p-2.5 flex items-center gap-2">
+                                        <input
+                                            readOnly
+                                            value={referralLink}
+                                            className="flex-1 bg-transparent text-xs text-foreground outline-none"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            onClick={copyReferralLink}
+                                            className="bg-gradient-to-r from-[#00ff9d] to-[#00d9ff] text-black font-bold hover:scale-105 transition-transform h-7 px-3"
+                                        >
+                                            <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                            Copy
+                                        </Button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Account Management */}
                         <button

@@ -30,6 +30,36 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true,
+        index: true,
+    },
+    referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    totalReferrals: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    referralRewardClaimed: {
+        type: Boolean,
+        default: false,
+    },
+    depositAddress: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
+    depositAddressIndex: {
+        type: Number,
+        unique: true,
+        sparse: true,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

@@ -26,6 +26,7 @@ const AuthContent = () => {
     const [showTurnstile, setShowTurnstile] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const [isNewUser, setIsNewUser] = useState(false);
+    const [referralCode, setReferralCode] = useState<string | null>(null);
     // Only check biometric for valid email (contains @)
     const validEmail = email.includes("@") ? email : undefined;
     const { isAvailable, isRegistered, authenticate, register } = useBiometric(validEmail);
@@ -40,6 +41,15 @@ const AuthContent = () => {
         const errorType = searchParams.get("error");
         if (errorType === "AccessDenied") {
             setError("Sorry, your Gmail is not on the whitelist. You can contact Swapa support.");
+        }
+    }, [searchParams]);
+
+    // Capture referral code from URL
+    useEffect(() => {
+        const refCode = searchParams.get("ref");
+        if (refCode) {
+            setReferralCode(refCode);
+            console.log('📎 Referral code captured:', refCode);
         }
     }, [searchParams]);
 
@@ -143,6 +153,7 @@ const AuthContent = () => {
         try {
             const result = await signIn("email", {
                 email: email.trim(),
+                referralCode: referralCode || undefined,
                 redirect: false,
             });
 

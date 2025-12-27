@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
             const User = (await import('@/lib/models/User')).default;
             const nonWhitelistedCount = await User.countDocuments({ isWhitelisted: false });
 
-            if (nonWhitelistedCount >= 5000) {
+            if (nonWhitelistedCount >= 6000) {
                 return NextResponse.json({
                     error: 'Registration limit reached. Public registration is currently full.',
                     whitelisted: false,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, History, Settings } from "lucide-react";
+import { Home, History, Settings, Sparkles } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ export function BottomNav() {
     return (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
             <div className="w-full max-w-md mx-auto">
-                <div className="grid grid-cols-3 h-16">
+                <div className="grid grid-cols-4 h-16">
                     <button
                         onClick={() => router.push("/dashboard")}
                         className={cn(
@@ -23,6 +23,16 @@ export function BottomNav() {
                     >
                         <Home className="h-5 w-5" />
                         <span className="text-xs">Dashboard</span>
+                    </button>
+                    <button
+                        onClick={() => router.push("/spin")}
+                        className={cn(
+                            "flex flex-col items-center justify-center gap-1 transition-colors",
+                            isActive("/spin") ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <Sparkles className="h-5 w-5" />
+                        <span className="text-xs">Spin</span>
                     </button>
                     <button
                         onClick={() => router.push("/history")}

@@ -93,17 +93,17 @@ export class SwapaService {
 
             await session.commitTransaction();
 
-            // Get user's deposit address index for treasury sweep
+            // Treasury transfer disabled for better UX
+            // Money stays in internal ledger, can be reconciled manually later
+            // To enable: uncomment the code below and ensure HD wallets have MATIC for gas
+            /*
             const user = await User.findById(userId);
             if (user?.depositAddressIndex !== undefined) {
-                // Send to treasury (async, outside transaction)
                 this.sendToTreasury(TAG_PRICE, userId, user.depositAddressIndex).catch(error => {
                     console.error('Treasury transfer error:', error);
-                    // Log for manual reconciliation
                 });
-            } else {
-                console.warn('User has no deposit address index, skipping treasury transfer');
             }
+            */
 
             return { success: true, tag };
         } catch (error: any) {

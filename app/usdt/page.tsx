@@ -69,29 +69,19 @@ const USDTPage = () => {
                 const data = await response.json();
                 if (data.address) {
                     setDepositAddress(data.address);
+                    console.log('Deposit address loaded:', data.address);
+                    console.log('Address type:', data.type || 'unknown');
                 } else {
-                    // Address is empty, generate one
-                    await generateDepositAddress();
+                    console.error('No deposit address returned from API');
+                    toast.error("Failed to load deposit address");
                 }
+            } else {
+                console.error('Failed to fetch deposit address:', response.status);
+                toast.error("Failed to load deposit address");
             }
         } catch (error) {
             console.error("Error fetching deposit address:", error);
             toast.error("Failed to load deposit address");
-        }
-    };
-
-    const generateDepositAddress = async () => {
-        try {
-            const response = await fetch('/api/user/generate-deposit-address', {
-                method: 'POST'
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setDepositAddress(data.address);
-                toast.success("Deposit address generated!");
-            }
-        } catch (error) {
-            console.error("Error generating deposit address:", error);
         }
     };
 

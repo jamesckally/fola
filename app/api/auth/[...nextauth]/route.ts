@@ -72,7 +72,8 @@ export const authOptions: NextAuthOptions = {
             id: 'email',
             name: 'Email',
             credentials: {
-                email: { label: "Email", type: "email" }
+                email: { label: "Email", type: "email" },
+                referralCode: { label: "Referral Code", type: "text", optional: true }
             },
             async authorize(credentials) {
                 if (!credentials?.email) return null;

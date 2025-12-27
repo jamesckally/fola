@@ -14,7 +14,7 @@ interface TicketPurchaseDialogProps {
     onPurchaseSuccess: () => void;
 }
 
-const TICKET_RATE = 5; // 5 tickets per $1
+const TICKET_RATE = 3; // 3 tickets per $1
 
 export function TicketPurchaseDialog({
     open,

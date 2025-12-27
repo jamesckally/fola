@@ -108,9 +108,7 @@ export default function SpinPage() {
     const [nextClaimTime, setNextClaimTime] = useState<string | null>(null);
     const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
 
-    // Prize pool state
-    const [prizePool, setPrizePool] = useState(0);
-    const [jackpot, setJackpot] = useState(0);
+    // Recent winners
     const [recentWinners, setRecentWinners] = useState<any[]>([]);
 
     useEffect(() => {
@@ -142,8 +140,7 @@ export default function SpinPage() {
             const poolRes = await fetch('/api/game/prize-pool');
             if (poolRes.ok) {
                 const poolData = await poolRes.json();
-                setPrizePool(poolData.balance || 0);
-                setJackpot(poolData.jackpot || 0);
+
             }
 
             // Fetch ticket balance
@@ -278,7 +275,7 @@ export default function SpinPage() {
                 setFreeTickets(data.ticketsRemaining.free);
                 setPaidTickets(data.ticketsRemaining.paid);
                 setUsdtBalance(data.newUSDTBalance);
-                setPrizePool(data.poolBalance);
+
                 loadData();
             }, 4000);
 
@@ -351,19 +348,6 @@ export default function SpinPage() {
                                 >
                                     <Coins className="mr-2 h-4 w-4" /> Buy More
                                 </Button>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="p-4 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-[#00ff9d]/20 border border-purple-500/30 shadow-xl rounded-2xl backdrop-blur-md">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm text-white/70 mb-1">Prize Pool</div>
-                                <div className="text-2xl font-bold text-white">${prizePool.toFixed(2)}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm text-white/70 mb-1">Jackpot 🎰</div>
-                                <div className="text-2xl font-bold text-[#FFD700]">${jackpot.toFixed(2)}</div>
                             </div>
                         </div>
                     </Card>

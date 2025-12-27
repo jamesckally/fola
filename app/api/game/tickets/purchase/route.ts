@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
             bonusFreeTicket = 1;
         }
 
-        // Start transaction
-        const session_db = await dbConnect().then(conn => conn.startSession());
+        // Start database transaction
+        const session_db = await mongoose.startSession();
         session_db.startTransaction();
 
         try {

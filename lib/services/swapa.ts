@@ -44,7 +44,7 @@ export class SwapaService {
                         balance: {
                             $sum: {
                                 $cond: [
-                                    { $eq: ['$type', 'credit'] },
+                                    { $in: ['$type', ['DEPOSIT', 'REFERRAL_BONUS', 'SPIN_WIN']] },
                                     '$amount',
                                     { $multiply: ['$amount', -1] }
                                 ]

@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
                     balance: {
                         $sum: {
                             $cond: [
-                                { $eq: ['$type', 'credit'] },
+                                { $in: ['$type', ['DEPOSIT', 'REFERRAL_BONUS', 'SPIN_WIN']] },
                                 '$amount',
                                 { $multiply: ['$amount', -1] }
                             ]

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
-import UserTag from '@/lib/models/UserTag';
+import SwapaTag from '@/lib/models/SwapaTag';
 
 /**
  * GET /api/user/check-tag
@@ -24,12 +24,12 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ hasTag: false });
         }
 
-        // Check if user has a tag
-        const userTag = await UserTag.findOne({ userId: user._id });
+        // Check if user has a tag (using SwapaTag model)
+        const userTag = await SwapaTag.findOne({ owner: user._id });
 
         return NextResponse.json({
             hasTag: !!userTag,
-            tagName: userTag?.tagName || null
+            tag_name: userTag?.name || null  // Changed from tagName to name
         });
     } catch (error: any) {
         console.error('Error checking tag status:', error);
